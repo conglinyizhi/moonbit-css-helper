@@ -1,0 +1,191 @@
+///| 预处理引擎句柄
+///
+/// 每个后端构造一个 `Engine`，用函数闭包承载其行为。这是「可插拔契约」的载体：
+/// 门面 `Rabbita` 只依赖 `Engine` 的 `supports` / `compile`，不关心是哪个后端。
+pub struct Engine {
+  name_fn : () -> String
+  supports_fn : (Format) -> Bool
+  compile_fn : (String) -> String raise RabbitaError
+  compile_imports_fn : (String, (String) -> String raise RabbitaError) -> String raise RabbitaError
+}
+
+///| 构造一个引擎
+///
+/// 三个回调分别返回引擎名、是否负责某格式、以及把源码编译为 CSS。
+pub fn Engine::new(
+  name~ : () -> String,
+  supports~ : (Format) -> Bool,
+  compile~ : (String) -> String raise RabbitaError,
+  compile_imports~ : (String, (String) -> String raise RabbitaError) -> String raise RabbitaError,
+) -> Engine {
+  { name_fn: name, supports_fn: supports, compile_fn: compile, compile_imports_fn: compile_imports }
+}
+
+///| 引擎名
+pub fn Engine::engine_name(self : Engine) -> String {
+  (self.name_fn)()
+}
+
+///| 是否负责某格式
+pub fn Engine::supports(self : Engine, fmt : Format) -> Bool {
+  (self.supports_fn)(fmt)
+}
+
+///| 把源码编译为 CSS
+pub fn Engine::compile(self : Engine, source : String) -> String raise RabbitaError {
+  (self.compile_fn)(source)
+}
+
+///| 带 @import 内联地编译
+pub fn Engine::compile_imports(
+  self : Engine,
+  source : String,
+  read : (String) -> String raise RabbitaError,
+) -> String raise RabbitaError {
+  (self.compile_imports_fn)(source, read)
+}
+
+///|
+
+///| 统一的编译错误
+///
+/// 把各个后端引擎的错误统一成一种 `RabbitaError`，让调用方只需处理它。
+pub(all) suberror RabbitaError {
+  /// 没有任何引擎负责该格式
+  NoEngine(Format)
+  /// 引擎在编译过程中失败
+  EngineFailed(engine~ : String, message~ : String)
+  /// 语法尚未支持（如 sass 缩进语法）
+  UnsupportedSyntax(String)
+} derive(Debug)
+
+///|
+pub impl Show for RabbitaError with fn to_string(self) {
+  match self {
+    NoEngine(fmt) => "no engine for format \{fmt}"
+    EngineFailed(engine~, message~) => "\{engine} failed: \{message}"
+    UnsupportedSyntax(feature) => "unsupported syntax: \{feature}"
+  }
+}
+
+///|
+
+///| 支持的 CSS 预处理格式
+///
+/// 分发给后端引擎的格式标签。
+pub(all) enum Format {
+  Scss
+  Less
+  Css
+} derive(Debug, Eq)
+
+///| 启发式自动识别源码格式
+///
+/// 优先判 SCSS（含 `$` 变量或 Sass 控制指令），其次判 LESS
+/// （`@name :` 变量定义），否则当作普通 CSS。
+pub fn Format::detect(source : String) -> Format {
+  if Format::looks_scss(source) {
+    return Scss
+  }
+  if Format::looks_less(source) {
+    return Less
+  }
+  Css
+}
+
+///|
+fn Format::looks_scss(source : String) -> Bool {
+  if source.contains("$") {
+    return true
+  }
+  let controls = [
+    "@mixin",
+    "@include",
+    "@each",
+    "@for",
+    "@extend",
+    "@function",
+    "@use",
+    "@forward",
+    "@while",
+    "@at-root",
+    "@if",
+    "@else",
+    "@return",
+    "@debug",
+    "@warn",
+    "@error",
+    "@content",
+  ]
+  for k in controls {
+    if source.contains(k) {
+      return true
+    }
+  }
+  false
+}
+
+///| 判断是否存在 LESS 变量定义（`@name : expr`）
+fn Format::looks_less(source : String) -> Bool {
+  let n = source.length()
+  let mut i = 0
+  while i < n {
+    if source[i] == '@' {
+      if is_less_variable_at(source, i) {
+        return true
+      }
+    }
+    i += 1
+  }
+  false
+}
+
+///| 判断 `source[i]`（为 `@`）处是否为 LESS 变量定义
+fn is_less_variable_at(source : String, i : Int) -> Bool {
+  let n = source.length()
+  let mut j = i + 1
+  if j >= n || !is_ident_start(source[j]) {
+    return false
+  }
+  while j < n && is_ident_char(source[j]) {
+    j += 1
+  }
+  let mut k = j
+  while k < n && source[k] == ' ' {
+    k += 1
+  }
+  k < n && source[k] == ':'
+}
+
+///|
+fn is_ident_start(u : UInt16) -> Bool {
+  (u >= 'A' && u <= 'Z') || (u >= 'a' && u <= 'z') || u == '_' || u == '-'
+}
+
+///|
+fn is_ident_char(u : UInt16) -> Bool {
+  is_ident_start(u) || (u >= '0' && u <= '9')
+}
+
+///|
+pub impl Show for Format with fn to_string(self) {
+  match self {
+    Scss => "scss"
+    Less => "less"
+    Css => "css"
+  }
+}
+
+///|
+
+///| 编译入口的输入形态
+///
+/// 传给 `compile_input` 的输入，决定格式如何解析。
+pub(all) enum Input {
+  /// 源码正文，格式走自动识别
+  Source(String)
+  /// 源码正文 + 显式指定格式
+  SourceWithFormat(String, Format)
+  /// 文件路径（用注入 reader 读取）
+  File(String)
+} derive(Debug, Eq)
