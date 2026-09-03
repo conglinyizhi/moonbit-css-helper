@@ -17,7 +17,7 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 | test/cases（自写 11） | 11 | 11 | 0 | 0 | 0 |
 | spec/variables | 14 | 14 | 0 | 0 | 0 |
 | spec/operators | 30 | 3 | 26 | 0 | 1 |
-| spec/directives | 776 | 70 | 127 | 0 | 579 |
+| spec/directives | 776 | 79 | 118 | 0 | 579 |
 
 `dart-sass 无法编译` 多为 sass-spec 的多文件 `@import` 用例（单文件 `compileString` 缺依赖），
 不代表 moonbit 问题，属跳过项。
@@ -39,11 +39,12 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 ### 3. 多文件 / 模块系统（directives 579 跳过）
 - `@import` / `@use` / `@forward` 不支持 —— sass-spec 大量用例因此无法单文件编译。
 
-### 4. 控制流 / mixin 细节（directives 126 个不一致）
-已支持：基本 `@each $x in a,b,c` 列表迭代（含选择器/值插值，自带 each.scss 验证）。
-仍缺：`@each` 多变量解构、`@while`、`@for` 步长/多值、`@content`、带参数 mixin 默认值、
-`@return`、`@error/@warn/@debug`、条件里的比较运算符（`==`/`<`/`>`）。
-另有 579 个 sass-spec 多文件 `@import` 用例无法单文件编译（见 #3）。
+### 4. 控制流 / mixin（directives 79/776）
+已支持：`@if/@else if/@else`（比较/逻辑条件）、`@while`、`@for`、`@each`（单变量+
+选择器/值插值）、`@content`、mixin 参数默认值与 `...` 可变参数、`@warn/@debug/@error`
+（忽略消息，旁随内容正常输出）。
+仍缺：`@each` 多变量解构、条件里的嵌套比较优先级完备、数学/颜色内置函数、
+`@return`。另有 579 个多文件 `@import` 用例无法单文件编译（见 #3）。
 
 ## 结论
 

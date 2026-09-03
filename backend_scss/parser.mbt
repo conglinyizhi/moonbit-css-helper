@@ -104,6 +104,10 @@ fn Parser::parse_at(self : Parser) -> Node? {
   if name == "@content" {
     return Some(Content)
   }
+  if name == "@warn" || name == "@debug" || name == "@error" {
+    ignore(self.read_value())
+    return Some(Raw(""))
+  }
   if name == "@if" {
     let cond = self.read_until_brace()
     let body = self.parse_block()
