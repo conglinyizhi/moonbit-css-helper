@@ -1,0 +1,52 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "conglinyizhi/rabbita/core"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+pub(all) suberror RabbitaError {
+  NoEngine(Format)
+  EngineFailed(engine~ : String, message~ : String)
+} derive(@debug.Debug)
+pub impl Show for RabbitaError
+
+// Types and methods
+pub struct Engine {
+  name_fn : () -> String
+  supports_fn : (Format) -> Bool
+  compile_fn : (String) -> String raise RabbitaError
+}
+pub fn Engine::compile(Self, String) -> String raise RabbitaError
+pub fn Engine::engine_name(Self) -> String
+pub fn Engine::new(name~ : () -> String, supports~ : (Format) -> Bool, compile~ : (String) -> String raise RabbitaError) -> Self
+pub fn Engine::supports(Self, Format) -> Bool
+
+pub(all) enum Format {
+  Scss
+  Less
+  Css
+} derive(Eq, @debug.Debug)
+pub fn Format::detect(String) -> Self
+pub impl Show for Format
+
+pub(all) enum Input {
+  Source(String)
+  SourceWithFormat(String, Format)
+} derive(Eq, @debug.Debug)
+
+pub struct Rabbita {
+  engines : Array[Engine]
+}
+pub fn Rabbita::compile(Self, String) -> String raise RabbitaError
+pub fn Rabbita::compile_file(Self, String, (String) -> String raise RabbitaError) -> String raise RabbitaError
+pub fn Rabbita::compile_input(Self, Input) -> String raise RabbitaError
+pub fn Rabbita::compile_with_format(Self, String, Format) -> String raise RabbitaError
+pub fn Rabbita::new(Array[Engine]) -> Self
+
+// Type aliases
+
+// Traits

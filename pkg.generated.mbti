@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "conglinyizhi/rabbita"
+
+import {
+  "conglinyizhi/rabbita/core",
+}
+
+// Values
+pub fn compile(String) -> String raise @core.RabbitaError
+
+pub fn compile_css(String) -> String raise @core.RabbitaError
+
+pub fn compile_file(String, (String) -> String raise @core.RabbitaError) -> String raise @core.RabbitaError
+
+pub fn compile_input(@core.Input) -> String raise @core.RabbitaError
+
+pub fn compile_less(String) -> String raise @core.RabbitaError
+
+pub fn compile_scss(String) -> String raise @core.RabbitaError
+
+pub fn compile_with_format(String, @core.Format) -> String raise @core.RabbitaError
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

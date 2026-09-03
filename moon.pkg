@@ -1,4 +1,5 @@
 import {
   "conglinyizhi/rabbita/core",
   "conglinyizhi/rabbita/backend_css",
+  "conglinyizhi/rabbita/backend_scss",
 }

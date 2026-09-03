@@ -50,5 +50,5 @@ pub fn compile_css(source : String) -> String raise @core.RabbitaError {
 
 ///| 内置引擎组成的默认门面
 fn default() -> @core.Rabbita {
-  @core.Rabbita::new([@backend_css.css_engine()])
+  @core.Rabbita::new([@backend_css.css_engine(), @backend_scss.scss_engine()])
 }

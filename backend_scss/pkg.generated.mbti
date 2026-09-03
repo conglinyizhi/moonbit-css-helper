@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "conglinyizhi/rabbita/backend_scss"
+
+import {
+  "conglinyizhi/rabbita/core",
+}
+
+// Values
+pub fn parse_sheet(Array[String]) -> Array[Node]
+
+pub fn scss_engine() -> @core.Engine
+
+pub fn to_css(Array[Node]) -> String
+
+pub fn tokenize(String) -> Array[String]
+
+// Errors
+
+// Types and methods
+type Env
+
+type Mixin
+
+pub(all) enum Node {
+  RuleSet(Array[String], Array[Node])
+  Decl(String, Array[String])
+  VarDef(String, Array[String])
+  MixinDef(String, Array[String], Array[Node])
+  MixinCall(String, Array[String])
+  If(Array[String], Array[Node], Array[Node])
+  For(String, Array[String], Array[String], Array[Node])
+  AtRule(String, Array[String], Array[Node])
+  Raw(String)
+}
+
+type Parser
+
+// Type aliases
+
+// Traits

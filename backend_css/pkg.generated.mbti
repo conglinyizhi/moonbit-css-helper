@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "conglinyizhi/rabbita/backend_css"
+
+import {
+  "conglinyizhi/rabbita/core",
+}
+
+// Values
+pub fn css_engine() -> @core.Engine
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
