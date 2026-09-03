@@ -56,6 +56,11 @@ pub fn less_to_scss(source : String) -> String {
           sb.write_string(")")
           i = after
         }
+      } else if j < n && source[j] == ';' {
+        // 分离调用 .mixin; → @include mixin;
+        sb.write_string("@include ")
+        sb.write_string(name)
+        i = j
       } else {
         // 普通类选择器 .name
         sb.write_string(".")
