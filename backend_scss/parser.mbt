@@ -126,6 +126,12 @@ fn Parser::parse_at(self : Parser) -> Node? {
     self.consume("}")
     return Some(Each(var_name, list, body))
   }
+  if name == "@while" {
+    let cond = self.read_until_brace()
+    let body = self.parse_block()
+    self.consume("}")
+    return Some(While(cond, body))
+  }
   if name == "@else" {
     // 独立 @else 通常紧随 @if，这里按空块处理以免死循环
     return None

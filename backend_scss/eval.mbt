@@ -129,7 +129,8 @@ fn parse_flags(value : Array[String]) -> (Array[String], Bool, Bool) {
 ///| 处理一个变量定义节点
 fn apply_vardef(env : Env, name : String, value : Array[String]) -> Unit {
   let (cleaned, is_default, is_global) = parse_flags(value)
-  Env::define_var(env, name, cleaned, is_default, is_global)
+  let resolved = resolve(cleaned, env)
+  Env::define_var(env, name, [resolved], is_default, is_global)
 }
 
 ///| 生成：按顶层节点顺序输出
@@ -148,6 +149,7 @@ fn gen(nodes : Array[Node], parent : Array[String], env : Env, sb : StringBuilde
       Each(v, list, body) => {
         gen(expand_each(v, list, body, env), parent, env, sb)
       }
+      While(cond, body) => gen_while(cond, body, parent, env, sb)
       MixinCall(name, args) => gen_mixin_call(name, args, parent, env, sb)
       VarDef(name, value) => apply_vardef(env, name, value)
       MixinDef(name, params, body) => {
@@ -178,7 +180,7 @@ fn gen_ruleset(
   Env::push_scope(env)
   split_body(body, full, env, decl_lines, struct_nodes)
   if decl_lines.length() > 0 {
-    sb.write_string("\{full.join(", ")} {\n")
+    sb.write_string("\{join_resolved(full, env)} {\n")
     for line in decl_lines {
       sb.write_string("  \{line}\n")
     }
@@ -211,6 +213,7 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
         gen(expand_each(v, list, body, env), parent, env, sb)
       })
     }
+    While(cond, body) => gen_while(cond, body, parent, env, sb)
     MixinCall(name, args) => gen_mixin_call(name, args, parent, env, sb)
     VarDef(name, value) => apply_vardef(env, name, value)
     MixinDef(name, params, body) => {
@@ -284,6 +287,13 @@ fn split_body(
           split_body(expanded, _full, env, decl_lines, struct_nodes)
         })
       }
+      While(cond, body2) => {
+        let mut iter = 0
+        while eval_truthy(cond, env) && iter < 1000 {
+          iter += 1
+          split_body(body2, _full, env, decl_lines, struct_nodes)
+        }
+      }
       other => struct_nodes.push(other)
     }
   }
@@ -343,6 +353,73 @@ fn expand_each(
 }
 
 ///| 按逗号拆分 token 数组
+///| 生成 @while 循环
+fn gen_while(
+  cond : Array[String],
+  body : Array[Node],
+  parent : Array[String],
+  env : Env,
+  sb : StringBuilder,
+) -> Unit {
+  let mut iter = 0
+  while eval_truthy(cond, env) && iter < 1000 {
+    iter += 1
+    gen(body, parent, env, sb)
+  }
+}
+
+///| 把选择器数组里的插值 `#{$var}` 求值后 join
+fn join_resolved(selectors : Array[String], env : Env) -> String {
+  let parts : Array[String] = []
+  for s in selectors {
+    parts.push(resolve_sel_interp(s, env))
+  }
+  parts.join(", ")
+}
+
+///| 对选择器字符串里的 `#{$var}` 插值求值
+fn resolve_sel_interp(s : String, env : Env) -> String {
+  let mut out = s
+  let mut changed = true
+  while changed {
+    changed = false
+    let n = out.length()
+    let mut start = -1
+    let mut i = 0
+    while i + 1 < n {
+      if out[i] == '#' && out[i + 1] == '{' {
+        start = i
+        break
+      }
+      i += 1
+    }
+    if start < 0 {
+      break
+    }
+    let mut j = start + 2
+    while j < n && out[j] != '}' {
+      j += 1
+    }
+    if j >= n {
+      break
+    }
+    let inner = out[start + 2:j].to_owned()
+    if inner.length() > 0 && inner[0] == '$' {
+      match Env::get_var(env, inner) {
+        Some(v) => {
+          let val = resolve(v, env)
+          out = out.replace(old="#{" + inner + "}", new=val)
+          changed = true
+        }
+        None => break
+      }
+    } else {
+      break
+    }
+  }
+  out
+}
+
 fn split_on_commas(toks : Array[String]) -> Array[Array[String]] {
   let groups : Array[Array[String]] = []
   let mut cur : Array[String] = []
@@ -388,6 +465,7 @@ fn subst_node(n : Node, v : String, val : String) -> Node {
       subst_toks(list, v, val),
       substitute_var(body, v, val),
     )
+    While(cond, body) => While(subst_toks(cond, v, val), substitute_var(body, v, val))
     AtRule(name, prelude, body) => AtRule(
       name,
       subst_toks(prelude, v, val),

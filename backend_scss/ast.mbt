@@ -19,6 +19,8 @@ pub(all) enum Node {
   For(String, Array[String], Array[String], Array[Node])
   /// `@each $x in list` 列表迭代
   Each(String, Array[String], Array[Node])
+  /// `@while cond` 循环
+  While(Array[String], Array[Node])
   /// 透传的 at-rule（如 @media / @supports）
   AtRule(String, Array[String], Array[Node])
   /// 无法解析时原样透传的文本
