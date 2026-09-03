@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "conglinyizhi/rabbita/core"
+package "conglinyizhi/moonbit-css-helper/core"
 
 import {
   "moonbitlang/core/debug",

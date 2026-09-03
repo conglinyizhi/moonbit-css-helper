@@ -1,4 +1,4 @@
-# conglinyizhi/rabbita
+# conglinyizhi/moonbit-css-helper
 
 可插拔的 CSS 预处理器编译门面：一个函数把 **SCSS / LESS / CSS** 源码（或文件）编译成 CSS。
 核心只做「识别格式 → 路由到后端引擎 → 统一错误」，具体引擎（SCSS 子集、CSS 透传）可插拔、可替换。
@@ -9,7 +9,7 @@
 test {
   // 自动识别格式编译
   inspect(
-    @rabbita.compile("$c: red; body { color: $c; }"),
+    @moonbit_css_helper.compile("$c: red; body { color: $c; }"),
     content=(#|body {
     #|  color: red;
     #|}
@@ -22,7 +22,7 @@ test {
 ```mbt check
 test {
   // 显式指定为 CSS（透传）
-  inspect(@rabbita.compile_css("body { color: red; }"), content="body { color: red; }")
+  inspect(@moonbit_css_helper.compile_css("body { color: red; }"), content="body { color: red; }")
 }
 ```
 
@@ -30,7 +30,7 @@ test {
 test {
   // SCSS 变量 + 嵌套
   inspect(
-    @rabbita.compile_scss("$gap: 8px; a { margin: $gap; b { padding: $gap; } }"),
+    @moonbit_css_helper.compile_scss("$gap: 8px; a { margin: $gap; b { padding: $gap; } }"),
     content=(#|a {
     #|  margin: 8px;
     #|}
@@ -43,7 +43,7 @@ test {
 }
 ```
 
-## 门面 API（核心包 `conglinyizhi/rabbita`）
+## 门面 API（核心包 `conglinyizhi/moonbit-css-helper`）
 
 - `compile(source)` — 自动识别格式并编译
 - `compile_scss(source)` / `compile_less(source)` / `compile_css(source)` — 显式格式编译

@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "conglinyizhi/rabbita"
+package "conglinyizhi/moonbit-css-helper"
 
 import {
-  "conglinyizhi/rabbita/core",
+  "conglinyizhi/moonbit-css-helper/core",
 }
 
 // Values

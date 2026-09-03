@@ -1,5 +1,5 @@
 import {
-  "conglinyizhi/rabbita/core",
-  "conglinyizhi/rabbita/backend_css",
-  "conglinyizhi/rabbita/backend_scss",
+  "conglinyizhi/moonbit_css_helper/core",
+  "conglinyizhi/moonbit_css_helper/backend_css",
+  "conglinyizhi/moonbit_css_helper/backend_scss",
 }
