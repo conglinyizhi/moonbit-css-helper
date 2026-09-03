@@ -6,6 +6,8 @@ pub(all) suberror RabbitaError {
   NoEngine(Format)
   /// 引擎在编译过程中失败
   EngineFailed(engine~ : String, message~ : String)
+  /// 语法尚未支持（如 sass 缩进语法）
+  UnsupportedSyntax(String)
 } derive(Debug)
 
 ///|
@@ -13,5 +15,6 @@ pub impl Show for RabbitaError with fn to_string(self) {
   match self {
     NoEngine(fmt) => "no engine for format \{fmt}"
     EngineFailed(engine~, message~) => "\{engine} failed: \{message}"
+    UnsupportedSyntax(feature) => "unsupported syntax: \{feature}"
   }
 }
