@@ -3,3 +3,7 @@ import {
   "conglinyizhi/moonbit_css_helper/backend_css",
   "conglinyizhi/moonbit_css_helper/backend_scss",
 }
+
+import {
+  "conglinyizhi/moonbit_css_helper/core",
+} for "test"

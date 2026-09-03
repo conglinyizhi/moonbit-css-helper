@@ -23,6 +23,8 @@ pub(all) enum Node {
   Each(Array[String], Array[String], Array[Node])
   /// `@while cond` 循环
   While(Array[String], Array[Node])
+  /// `@import "path"`（path 不含引号）
+  Import(String)
   /// 透传的 at-rule（如 @media / @supports）
   AtRule(String, Array[String], Array[Node])
   /// 无法解析时原样透传的文本

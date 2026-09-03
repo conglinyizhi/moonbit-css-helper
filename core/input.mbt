@@ -6,4 +6,6 @@ pub(all) enum Input {
   Source(String)
   /// 源码正文 + 显式指定格式
   SourceWithFormat(String, Format)
+  /// 文件路径（用注入 reader 读取）
+  File(String)
 } derive(Debug, Eq)

@@ -7,5 +7,6 @@ pub fn scss_engine() -> @core.Engine {
     name = () => "scss",
     supports = (fmt) => fmt is @core.Scss,
     compile = (source) => to_css(parse_sheet(tokenize(source))),
+    compile_imports = (source, read) => compile_with_imports(source, read),
   )
 }

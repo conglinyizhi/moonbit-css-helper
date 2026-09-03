@@ -6,5 +6,6 @@ pub fn css_engine() -> @core.Engine {
     name = () => "css",
     supports = (fmt) => fmt is @core.Css,
     compile = (source) => source,
+    compile_imports = (source, _read) => source,
   )
 }

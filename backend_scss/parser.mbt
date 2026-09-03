@@ -108,6 +108,11 @@ fn Parser::parse_at(self : Parser) -> Node? {
     ignore(self.read_value())
     return Some(Raw(""))
   }
+  if name == "@import" {
+    let path_tok = self.advance()
+    ignore(self.read_value())
+    return Some(Import(tri_quotes(path_tok)))
+  }
   if name == "@if" {
     let cond = self.read_until_brace()
     let body = self.parse_block()

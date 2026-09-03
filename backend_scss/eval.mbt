@@ -189,6 +189,7 @@ fn gen(nodes : Array[Node], parent : Array[String], env : Env, sb : StringBuilde
       Decl(name, value) => {
         sb.write_string("  \{name}: \{resolve(value, env)};\n")
       }
+      Import(_) => ()
       Raw(s) => {
         sb.write_string(s)
         sb.write_string("\n")
@@ -254,6 +255,7 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
     Decl(name, value) => {
       sb.write_string("  \{name}: \{resolve(value, env)};\n")
     }
+    Import(_) => ()
     Raw(s) => {
       sb.write_string(s)
       sb.write_string("\n")

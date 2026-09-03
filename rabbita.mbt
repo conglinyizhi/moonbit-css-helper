@@ -48,6 +48,14 @@ pub fn compile_css(source : String) -> String raise @core.RabbitaError {
   default().compile_with_format(source, @core.Css)
 }
 
+///| 编译多个输入（文件/字符串混用），带 @import 内联
+pub fn compile_many(
+  inputs : Array[@core.Input],
+  read : (String) -> String raise @core.RabbitaError,
+) -> String raise @core.RabbitaError {
+  default().compile_many(inputs, read)
+}
+
 ///| 内置引擎组成的默认门面
 fn default() -> @core.Rabbita {
   @core.Rabbita::new([@backend_css.css_engine(), @backend_scss.scss_engine()])

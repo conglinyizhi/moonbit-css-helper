@@ -6,6 +6,7 @@ pub struct Engine {
   name_fn : () -> String
   supports_fn : (Format) -> Bool
   compile_fn : (String) -> String raise RabbitaError
+  compile_imports_fn : (String, (String) -> String raise RabbitaError) -> String raise RabbitaError
 }
 
 ///| 构造一个引擎
@@ -15,8 +16,9 @@ pub fn Engine::new(
   name~ : () -> String,
   supports~ : (Format) -> Bool,
   compile~ : (String) -> String raise RabbitaError,
+  compile_imports~ : (String, (String) -> String raise RabbitaError) -> String raise RabbitaError,
 ) -> Engine {
-  { name_fn: name, supports_fn: supports, compile_fn: compile }
+  { name_fn: name, supports_fn: supports, compile_fn: compile, compile_imports_fn: compile_imports }
 }
 
 ///| 引擎名
@@ -32,4 +34,13 @@ pub fn Engine::supports(self : Engine, fmt : Format) -> Bool {
 ///| 把源码编译为 CSS
 pub fn Engine::compile(self : Engine, source : String) -> String raise RabbitaError {
   (self.compile_fn)(source)
+}
+
+///| 带 @import 内联地编译
+pub fn Engine::compile_imports(
+  self : Engine,
+  source : String,
+  read : (String) -> String raise RabbitaError,
+) -> String raise RabbitaError {
+  (self.compile_imports_fn)(source, read)
 }
