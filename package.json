@@ -1,0 +1,11 @@
+{
+  "name": "moonbit-css-helper-diff",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "diff": "node scripts/diff.mjs"
+  },
+  "devDependencies": {
+    "sass": "^1.77.0"
+  }
+}

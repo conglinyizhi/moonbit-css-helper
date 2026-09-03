@@ -26,3 +26,8 @@ keywords = [
 preferred_target = "native"
 
 description = "A pluggable CSS preprocessor compile facade: a single function turns SCSS / LESS / CSS source (or file) into CSS, routing to swappable backend engines."
+
+import {
+  "moonbitlang/async@0.21.2",
+  "moonbitlang/x@0.5.1",
+}
