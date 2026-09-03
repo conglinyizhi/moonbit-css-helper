@@ -85,6 +85,7 @@ fn with_scope(env : Env, f : () -> Unit) -> Unit {
 fn gen_mixin_call(
   name : String,
   args : Array[String],
+  content : Array[Node],
   parent : Array[String],
   env : Env,
   sb : StringBuilder,
@@ -92,7 +93,7 @@ fn gen_mixin_call(
   match env.mixins.get(name) {
     Some(m) => with_scope(env, () => {
       bind_params(m, args, env)
-      gen(m.body, parent, env, sb)
+      gen(replace_content(m.body, content), parent, env, sb)
     })
     None => ()
   }
@@ -150,7 +151,8 @@ fn gen(nodes : Array[Node], parent : Array[String], env : Env, sb : StringBuilde
         gen(expand_each(v, list, body, env), parent, env, sb)
       }
       While(cond, body) => gen_while(cond, body, parent, env, sb)
-      MixinCall(name, args) => gen_mixin_call(name, args, parent, env, sb)
+      MixinCall(name, args, content) => gen_mixin_call(name, args, content, parent, env, sb)
+      Content => ()
       VarDef(name, value) => apply_vardef(env, name, value)
       MixinDef(name, params, body) => {
         env.mixins[name] = { params, body }
@@ -214,7 +216,8 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
       })
     }
     While(cond, body) => gen_while(cond, body, parent, env, sb)
-    MixinCall(name, args) => gen_mixin_call(name, args, parent, env, sb)
+    MixinCall(name, args, content) => gen_mixin_call(name, args, content, parent, env, sb)
+    Content => ()
     VarDef(name, value) => apply_vardef(env, name, value)
     MixinDef(name, params, body) => {
       env.mixins[name] = { params, body }
@@ -260,11 +263,11 @@ fn split_body(
       MixinDef(name, params, body2) => {
         env.mixins[name] = { params, body: body2 }
       }
-      MixinCall(name, args) => {
+      MixinCall(name, args, content) => {
         match env.mixins.get(name) {
           Some(m) => with_scope(env, () => {
             bind_params(m, args, env)
-            split_body(m.body, _full, env, decl_lines, struct_nodes)
+            split_body(replace_content(m.body, content), _full, env, decl_lines, struct_nodes)
           })
           None => ()
         }
@@ -420,6 +423,35 @@ fn resolve_sel_interp(s : String, env : Env) -> String {
   out
 }
 
+fn replace_content(body : Array[Node], content : Array[Node]) -> Array[Node] {
+  let out : Array[Node] = []
+  for n in body {
+    match n {
+      Content => {
+        for cn in content {
+          out.push(cn)
+        }
+      }
+      other => out.push(replace_into(other, content))
+    }
+  }
+  out
+}
+
+///| 递归深入嵌套块替换 @content
+fn replace_into(n : Node, content : Array[Node]) -> Node {
+  match n {
+    RuleSet(sel, body) => RuleSet(sel, replace_content(body, content))
+    If(cond, tb, eb) => If(cond, replace_content(tb, content), replace_content(eb, content))
+    For(v, f, t, b) => For(v, f, t, replace_content(b, content))
+    Each(v, l, b) => Each(v, l, replace_content(b, content))
+    While(cond, b) => While(cond, replace_content(b, content))
+    AtRule(name, prelude, b) => AtRule(name, prelude, replace_content(b, content))
+    MixinCall(nm, ar, cb) => MixinCall(nm, ar, replace_content(cb, content))
+    other => other
+  }
+}
+
 fn split_on_commas(toks : Array[String]) -> Array[Array[String]] {
   let groups : Array[Array[String]] = []
   let mut cur : Array[String] = []
@@ -453,7 +485,11 @@ fn subst_node(n : Node, v : String, val : String) -> Node {
       substitute_var(tb, v, val),
       substitute_var(eb, v, val),
     )
-    MixinCall(name, args) => MixinCall(name, subst_toks(args, v, val))
+    MixinCall(name, args, content) => MixinCall(
+      name,
+      subst_toks(args, v, val),
+      substitute_var(content, v, val),
+    )
     For(v2, from, to, body) => For(
       v2,
       subst_toks(from, v, val),

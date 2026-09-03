@@ -91,7 +91,18 @@ fn Parser::parse_at(self : Parser) -> Node? {
   if name == "@include" {
     let inc_name = self.advance()
     let args = self.read_invoke_args()
-    return Some(MixinCall(inc_name, args))
+    let content = if self.peek() is Some("{") {
+      self.pos += 1
+      let b = self.parse_block()
+      self.consume("}")
+      b
+    } else {
+      []
+    }
+    return Some(MixinCall(inc_name, args, content))
+  }
+  if name == "@content" {
+    return Some(Content)
   }
   if name == "@if" {
     let cond = self.read_until_brace()

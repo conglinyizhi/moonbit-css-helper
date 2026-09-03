@@ -11,8 +11,10 @@ pub(all) enum Node {
   VarDef(String, Array[String])
   /// mixin 定义
   MixinDef(String, Array[String], Array[Node])
-  /// mixin 调用
-  MixinCall(String, Array[String])
+  /// mixin 调用（含 @content 内容块，可空）
+  MixinCall(String, Array[String], Array[Node])
+  /// `@content` 占位（mixin 内，@include 时被内容块替换）
+  Content
   /// `@if` 条件分支（else_body 可为空数组）
   If(Array[String], Array[Node], Array[Node])
   /// `@for $i from A to B` 循环
