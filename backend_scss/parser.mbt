@@ -97,15 +97,7 @@ fn Parser::parse_at(self : Parser) -> Node? {
     let cond = self.read_until_brace()
     let body = self.parse_block()
     self.consume("}")
-    let else_body = if self.peek() is Some("@else") {
-      ignore(self.advance())
-      self.consume("{")
-      let eb = self.parse_block()
-      self.consume("}")
-      eb
-    } else {
-      []
-    }
+    let else_body = self.parse_else_tail()
     return Some(If(cond, body, else_body))
   }
   if name == "@for" {
@@ -141,6 +133,30 @@ fn Parser::parse_at(self : Parser) -> Node? {
   let body = self.parse_block()
   self.consume("}")
   return Some(AtRule(name, prelude, body))
+}
+
+///| 解析 `@else` / `@else if` 链（返回后续节点）
+fn Parser::parse_else_tail(self : Parser) -> Array[Node] {
+  match self.peek() {
+    Some("@else") => {
+      ignore(self.advance())
+      let nx = self.peek()
+      if nx is Some(v) && v == "if" {
+        ignore(self.advance())
+        let cond = self.read_until_brace()
+        let body = self.parse_block()
+        self.consume("}")
+        let tail = self.parse_else_tail()
+        return [If(cond, body, tail)]
+      } else {
+        self.consume("{")
+        let eb = self.parse_block()
+        self.consume("}")
+        return eb
+      }
+    }
+    _ => []
+  }
 }
 
 ///| 读取 `@include` 的实参：括号内逗号分隔，每项 join 成一个字符串

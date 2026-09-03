@@ -25,4 +25,4 @@ pub(all) enum Node {
   AtRule(String, Array[String], Array[Node])
   /// 无法解析时原样透传的文本
   Raw(String)
-}
+} derive(Debug)
