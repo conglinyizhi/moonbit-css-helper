@@ -101,7 +101,7 @@ pub fn tokenize(src : String) -> Array[String] {
     // 标识符 / 选择器字符
     if is_ident_start(c) || c == '#' || c == '.' || c == '%' || c == '&' {
       let mut j = i
-      while j < n && (is_ident_char(src[j]) || src[j] == '-' || src[j] == '.' || src[j] == '%' || src[j] == '&') {
+      while j < n && (is_ident_char(src[j]) || src[j] == '-' || src[j] == '.' || src[j] == '%' || src[j] == '&' || (src[j] == '#' && (j + 1 >= n || src[j + 1] != '{'))) {
         j += 1
       }
       toks.push(src[i:j].to_owned())

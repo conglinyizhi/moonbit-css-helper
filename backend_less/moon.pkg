@@ -1,0 +1,4 @@
+import {
+  "conglinyizhi/moonbit_css_helper/core",
+  "conglinyizhi/moonbit_css_helper/backend_scss" @scss,
+}

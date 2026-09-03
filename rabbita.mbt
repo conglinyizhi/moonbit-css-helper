@@ -58,5 +58,5 @@ pub fn compile_many(
 
 ///| 内置引擎组成的默认门面
 fn default() -> @core.Rabbita {
-  @core.Rabbita::new([@backend_css.css_engine(), @backend_scss.scss_engine()])
+  @core.Rabbita::new([@backend_css.css_engine(), @backend_scss.scss_engine(), @backend_less.less_engine()])
 }
