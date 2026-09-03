@@ -1,0 +1,6 @@
+import {
+  "conglinyizhi/rabbita" @rabbita,
+  "conglinyizhi/rabbita/core" @core,
+}
+
+pkgtype(kind: "executable")
