@@ -16,7 +16,7 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 | --- | --- | --- | --- | --- | --- |
 | test/cases（自写 11） | 11 | 11 | 0 | 0 | 0 |
 | spec/variables | 14 | 14 | 0 | 0 | 0 |
-| spec/operators | 30 | 0 | 29 | 0 | 1 |
+| spec/operators | 30 | 3 | 26 | 0 | 1 |
 | spec/directives | 776 | 70 | 127 | 0 | 579 |
 
 `dart-sass 无法编译` 多为 sass-spec 的多文件 `@import` 用例（单文件 `compileString` 缺依赖），
@@ -24,11 +24,12 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 
 ## 缺口分类（后续 roadmap）
 
-### 1. 运算 / 词法完整语义（operators 0/30，最大缺口）
-- **连字符标识符**：`c-d` 应作为单个标识符紧凑输出，我们 tokenizer 常把 `-` 拆开导致 `c - d`。
-- **`-`/`+` 的空格语义**：dart-sass 按前后空格决定是减法还是标识符/字符串连接，我们简单折叠、误伤。
-- **单位运算**（`px + px`、乘除、`%`）、`calc()` 透传、`infinity/NaN` 等边界。
-- 完整对齐 SCSS 运算是深水区，需按 dart-sass 算术语义逐块补。
+### 1. 运算 / 词法语义（operators 3/30，剩余为 value 系统深水区）
+已完成：值序列化改为运算符与相邻 token 紧密拼接（`c - d` → `c-d`、负值 `-1px`、`font: 12px/1.5`）。
+剩余 26 个 diff 属**完整 SCSS value/运算模型**（属全新求值器工程，子集不建议挤牙膏）：
+- **括号吸收**：`c-(d)` 应运算吸收为 `c-d`，需真正表达式求值。
+- **标识符字符串连接**：`c + d` → `cd`（`+` 的非数字连接语义）。
+- **单位运算 / `calc()` / `infinity`/`NaN`**：需 Number 带单位、Color、CalcValue 等值类型。
 
 ### 2. 变量作用域与指令（已修，variables 14/14）
 - 已实现块级作用域链（rule/mixin/@if/@for 各自独立、嵌套遮蔽）。

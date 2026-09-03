@@ -395,7 +395,31 @@ fn resolve(toks : Array[String], env : Env) -> String {
       parts.push(t)
     }
   }
-  fold_arith(parts).join(" ")
+  join_value_tokens(fold_arith(parts))
+}
+
+///| 判断是否为运算符 token
+fn is_op(t : String) -> Bool {
+  t == "+" || t == "-" || t == "*" || t == "/" || t == "%"
+}
+
+///| 值 token 序列化：运算符及其相邻 token 紧密拼接
+fn join_value_tokens(parts : Array[String]) -> String {
+  let sb = StringBuilder()
+  let mut prev_is_op = false
+  for i, t in parts {
+    if i == 0 {
+      prev_is_op = is_op(t)
+    } else {
+      let cur_is_op = is_op(t)
+      if !cur_is_op && !prev_is_op {
+        sb.write_string(" ")
+      }
+      prev_is_op = cur_is_op
+    }
+    sb.write_string(t)
+  }
+  sb.to_string()
 }
 
 fn join_value(toks : Array[String], env : Env) -> String {
