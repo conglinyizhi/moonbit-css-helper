@@ -67,6 +67,16 @@ pub fn tokenize(src : String) -> Array[String] {
       i = j
       continue
     }
+    // `!word`（!default / !global / !important 等）作为一个整体 token
+    if c == '!' {
+      let mut j = i + 1
+      while j < n && is_ident_char(src[j]) {
+        j += 1
+      }
+      toks.push(src[i:j].to_owned())
+      i = j
+      continue
+    }
     // 插值 `#{...}` 作为一个整体 token
     if c == '#' && i + 1 < n && src[i + 1] == '{' {
       let mut j = i + 2

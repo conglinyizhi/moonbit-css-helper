@@ -170,13 +170,27 @@ fn Parser::parse_decl_or_rule(self : Parser) -> Node? {
         self.pos += 1
         return parse_decl(head)
       }
+      Some("}") => break
       Some(_) => {
         head.push(self.advance())
       }
     }
   }
-  // 没有分号或花括号：原样透传
+  // 块结尾（} 或 EOF）：若形如 `name: value` 则按声明处理（SCSS 允许末尾声明省略分号）
+  if has_colon(head) {
+    return parse_decl(head)
+  }
   Some(Raw(head.join(" ")))
+}
+
+///| head 中是否含冒号
+fn has_colon(head : Array[String]) -> Bool {
+  for t in head {
+    if t == ":" {
+      return true
+    }
+  }
+  false
 }
 
 ///| 从 `name : value` 头解析声明

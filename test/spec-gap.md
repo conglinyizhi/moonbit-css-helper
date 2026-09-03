@@ -14,8 +14,8 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 
 | 用例集 | 用例数 | 一致 | 不一致 | moonbit 报错 | sass 无法编译 |
 | --- | --- | --- | --- | --- | --- |
-| test/cases（自写 8） | 8 | 8 | 0 | 0 | 0 |
-| spec/variables | 14 | 11 | 3 | 0 | 0 |
+| test/cases（自写 11） | 11 | 11 | 0 | 0 | 0 |
+| spec/variables | 14 | 14 | 0 | 0 | 0 |
 | spec/operators | 30 | 0 | 29 | 0 | 1 |
 | spec/directives | 776 | 70 | 127 | 0 | 579 |
 
@@ -30,9 +30,10 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 - **单位运算**（`px + px`、乘除、`%`）、`calc()` 透传、`infinity/NaN` 等边界。
 - 完整对齐 SCSS 运算是深水区，需按 dart-sass 算术语义逐块补。
 
-### 2. 变量作用域与指令（variables 3 个 diff）
-- `!default` / `!global` 声明不支持。
-- 块级（rule/mixin）局部作用域遮蔽：当前实现用单一全局环境，局部变量会泄漏/遮蔽错误。
+### 2. 变量作用域与指令（已修，variables 14/14）
+- 已实现块级作用域链（rule/mixin/@if/@for 各自独立、嵌套遮蔽）。
+- 已支持 `!default` / `!global` 旗标（含重复旗标）。
+- 已修复规则块结尾无分号声明的解析（`c { d: $a }`）。
 
 ### 3. 多文件 / 模块系统（directives 579 跳过）
 - `@import` / `@use` / `@forward` 不支持 —— sass-spec 大量用例因此无法单文件编译。
@@ -43,6 +44,6 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 
 ## 结论
 
-子集在「变量 / 嵌套 / 无参 mixin / 简单 @if / 数字加减」上已与 dart-sass 对齐（自写 case 全绿，
-variables 11/14）。完整 SCSS 语义（运算、作用域、模块、控制流细节）需要分阶段推进，
+子集在「变量（含作用域/!global/!default）/ 嵌套 / 无参 mixin / 简单 @if / 数字加减」上已与
+dart-sass 对齐（自写 11/11，variables 14/14）。完整 SCSS 语义（运算、作用域、模块、控制流细节）需要分阶段推进，
 本报告给出优先级参考。

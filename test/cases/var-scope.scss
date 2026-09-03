@@ -1,0 +1,5 @@
+$a: global;
+b {
+  $a: local;
+}
+c { d: $a }

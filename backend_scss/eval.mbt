@@ -1,14 +1,15 @@
 ///| SCSS 求值：AST → CSS 字符串
 ///
-/// 维护变量/混入作用域，实现变量替换、规则嵌套展开、mixin 调用、
-/// `@if/@for` 控制流与 `@media` 透传。
+/// 维护作用域链与 mixin 表，实现变量替换（含块级遮蔽）、规则嵌套、
+/// mixin 调用、`@if/@for` 控制流、`!default`/`!global` 变量旗标与 `@media` 透传。
 priv struct Mixin {
   params : Array[String]
   body : Array[Node]
 }
 
+///| 作用域链：`scopes[0]` 为全局，越靠后越内层
 priv struct Env {
-  vars : Map[String, Array[String]]
+  scopes : Array[Map[String, Array[String]]]
   mixins : Map[String, Mixin]
 }
 
@@ -22,7 +23,85 @@ pub fn to_css(nodes : Array[Node]) -> String {
 
 ///|
 fn Env::new() -> Env {
-  { vars: Map([]), mixins: Map([]) }
+  { scopes: [Map([])], mixins: Map([]) }
+}
+
+///|
+fn Env::push_scope(self : Env) -> Unit {
+  self.scopes.push(Map([]))
+}
+
+///|
+fn Env::pop_scope(self : Env) -> Unit {
+  if self.scopes.length() > 1 {
+    ignore(self.scopes.pop())
+  }
+}
+
+///| 从内向外查找变量
+fn Env::get_var(self : Env, name : String) -> Array[String]? {
+  let mut i = self.scopes.length() - 1
+  while i >= 0 {
+    let found = self.scopes[i].get(name)
+    if found is Some(_) {
+      return found
+    }
+    i -= 1
+  }
+  None
+}
+
+///| 写入变量到作用域（默认当前层，`is_global` 则全局层）
+fn Env::set_var(self : Env, name : String, value : Array[String], is_global : Bool) -> Unit {
+  if is_global {
+    self.scopes[0][name] = value
+  } else {
+    self.scopes[self.scopes.length() - 1][name] = value
+  }
+}
+
+///| 定义变量（`is_default` 时仅在未定义时设置）
+fn Env::define_var(
+  self : Env,
+  name : String,
+  value : Array[String],
+  is_default : Bool,
+  is_global : Bool,
+) -> Unit {
+  if is_default && self.get_var(name) is Some(_) {
+    return
+  }
+  self.set_var(name, value, is_global)
+}
+
+///| 在作用域内运行 `f`
+fn with_scope(env : Env, f : () -> Unit) -> Unit {
+  Env::push_scope(env)
+  f()
+  Env::pop_scope(env)
+}
+
+///| 从值 token 里解析 `!default` / `!global`，返回 (清洗后的值, default, global)
+fn parse_flags(value : Array[String]) -> (Array[String], Bool, Bool) {
+  let cleaned : Array[String] = []
+  let mut is_default = false
+  let mut is_global = false
+  for t in value {
+    if t == "!default" {
+      is_default = true
+    } else if t == "!global" {
+      is_global = true
+    } else {
+      cleaned.push(t)
+    }
+  }
+  (cleaned, is_default, is_global)
+}
+
+///| 处理一个变量定义节点
+fn apply_vardef(env : Env, name : String, value : Array[String]) -> Unit {
+  let (cleaned, is_default, is_global) = parse_flags(value)
+  Env::define_var(env, name, cleaned, is_default, is_global)
 }
 
 ///| 生成：按顶层节点顺序输出
@@ -44,9 +123,7 @@ fn gen(nodes : Array[Node], parent : Array[String], env : Env, sb : StringBuilde
           None => ()
         }
       }
-      VarDef(name, value) => {
-        env.vars[name] = value
-      }
+      VarDef(name, value) => apply_vardef(env, name, value)
       MixinDef(name, params, body) => {
         env.mixins[name] = { params, body }
       }
@@ -72,6 +149,7 @@ fn gen_ruleset(
   let full = combine(parent, sel)
   let decl_lines : Array[String] = []
   let struct_nodes : Array[Node] = []
+  Env::push_scope(env)
   split_body(body, full, env, decl_lines, struct_nodes)
   if decl_lines.length() > 0 {
     sb.write_string("\{full.join(", ")} {\n")
@@ -83,6 +161,7 @@ fn gen_ruleset(
   for s in struct_nodes {
     gen_struct(s, full, env, sb)
   }
+  Env::pop_scope(env)
 }
 
 ///| 生成单个结构节点（嵌套规则 / at-rule / 控制流 / include）
@@ -92,10 +171,14 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
     AtRule(name, prelude, body) => emit_atrule(name, prelude, body, env, sb)
     If(cond, tb, eb) => {
       let chosen = choose_branch(cond, tb, eb, env)
-      gen(chosen, parent, env, sb)
+      with_scope(env, () => {
+        gen(chosen, parent, env, sb)
+      })
     }
     For(v, from, to, body) => {
-      gen(expand_for(v, from, to, body, env), parent, env, sb)
+      with_scope(env, () => {
+        gen(expand_for(v, from, to, body, env), parent, env, sb)
+      })
     }
     MixinCall(name, args) => {
       match env.mixins.get(name) {
@@ -103,9 +186,7 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
         None => ()
       }
     }
-    VarDef(name, value) => {
-      env.vars[name] = value
-    }
+    VarDef(name, value) => apply_vardef(env, name, value)
     MixinDef(name, params, body) => {
       env.mixins[name] = { params, body }
     }
@@ -129,7 +210,9 @@ fn emit_atrule(
 ) -> Unit {
   let at_name = if name.starts_with("@") { name } else { "@" + name }
   sb.write_string("\{at_name} \{join_value(prelude, env)} {\n")
-  gen(body, [], env, sb)
+  with_scope(env, () => {
+    gen(body, [], env, sb)
+  })
   sb.write_string("}\n")
 }
 
@@ -144,25 +227,29 @@ fn split_body(
   for n in body {
     match n {
       Decl(name, value) => decl_lines.push("\{name}: \{resolve(value, env)};")
-      VarDef(name, value) => {
-        env.vars[name] = value
-      }
+      VarDef(name, value) => apply_vardef(env, name, value)
       MixinDef(name, params, body2) => {
         env.mixins[name] = { params, body: body2 }
       }
       MixinCall(name, args) => {
         match env.mixins.get(name) {
-          Some(m) => split_body(m.body, _full, env, decl_lines, struct_nodes)
+          Some(m) => with_scope(env, () => {
+            split_body(m.body, _full, env, decl_lines, struct_nodes)
+          })
           None => ()
         }
       }
       If(cond, tb, eb) => {
         let chosen = choose_branch(cond, tb, eb, env)
-        split_body(chosen, _full, env, decl_lines, struct_nodes)
+        with_scope(env, () => {
+          split_body(chosen, _full, env, decl_lines, struct_nodes)
+        })
       }
       For(v, from, to, body2) => {
         let expanded = expand_for(v, from, to, body2, env)
-        split_body(expanded, _full, env, decl_lines, struct_nodes)
+        with_scope(env, () => {
+          split_body(expanded, _full, env, decl_lines, struct_nodes)
+        })
       }
       other => struct_nodes.push(other)
     }
@@ -205,7 +292,6 @@ fn expand_for(
   out
 }
 
-///| 递归地把 AST 里 `$v` 相关的 token 替换为 `val`
 fn substitute_var(nodes : Array[Node], v : String, val : String) -> Array[Node] {
   let out : Array[Node] = []
   for n in nodes {
@@ -214,7 +300,6 @@ fn substitute_var(nodes : Array[Node], v : String, val : String) -> Array[Node] 
   out
 }
 
-///|
 fn subst_node(n : Node, v : String, val : String) -> Node {
   match n {
     Decl(name, value) => Decl(name, subst_toks(value, v, val))
@@ -240,7 +325,6 @@ fn subst_node(n : Node, v : String, val : String) -> Node {
   }
 }
 
-///| 替换 token 数组里等于 `$v` 的项
 fn subst_toks(toks : Array[String], v : String, val : String) -> Array[String] {
   let out : Array[String] = []
   let interp = "#{" + v + "}"
@@ -293,15 +377,14 @@ fn resolve(toks : Array[String], env : Env) -> String {
   let parts : Array[String] = []
   for t in toks {
     if t.length() > 0 && t[0] == '$' {
-      match env.vars.get(t) {
+      match Env::get_var(env, t) {
         Some(v) => parts.push(resolve(v, env))
         None => parts.push(t)
       }
     } else if t.length() > 2 && t.starts_with("#{") && t.ends_with("}") {
-      // 插值 #{$name}：提取内部变量并替换
       let inner = t[2:t.length() - 1].to_owned()
       if inner.length() > 0 && inner[0] == '$' {
-        match env.vars.get(inner) {
+        match Env::get_var(env, inner) {
           Some(v) => parts.push(resolve(v, env))
           None => parts.push(t)
         }
@@ -315,12 +398,10 @@ fn resolve(toks : Array[String], env : Env) -> String {
   fold_arith(parts).join(" ")
 }
 
-///| 值 token 数组拼接（用于 at-rule prelude 等）
 fn join_value(toks : Array[String], env : Env) -> String {
   resolve(toks, env)
 }
 
-///| 组合父选择器与子选择器（处理嵌套与 `&`）
 fn combine(parent : Array[String], sel : Array[String]) -> Array[String] {
   if parent.length() == 0 {
     return sel
@@ -334,7 +415,6 @@ fn combine(parent : Array[String], sel : Array[String]) -> Array[String] {
   out
 }
 
-///| 把子选择器接到父选择器后（`&` 则原位替换）
 fn join_nested(parent : String, sel : String) -> String {
   if sel.contains("&") {
     sel.replace(old="&", new=parent)
@@ -360,7 +440,6 @@ fn fold_arith(parts : Array[String]) -> Array[String] {
   out
 }
 
-///| 判断是否为数字字符串（可带单位）
 fn is_num_str(s : String) -> Bool {
   let t = s.trim()
   if t.length() == 0 {
@@ -384,7 +463,6 @@ fn is_num_str(s : String) -> Bool {
   true
 }
 
-///| 计算 `a op b`（op 为 + 或 -），单位取第一个操作数
 fn calc_num(a : String, op : String, b : String) -> String {
   let (na, ua) = split_num(a)
   let (nb, _ub) = split_num(b)
@@ -392,7 +470,6 @@ fn calc_num(a : String, op : String, b : String) -> String {
   r.to_string() + ua
 }
 
-///| 拆数字与单位
 fn split_num(s : String) -> (Int, String) {
   let t = s.trim()
   let mut j = t.length()
@@ -404,7 +481,6 @@ fn split_num(s : String) -> (Int, String) {
   (to_int(numpart), unit)
 }
 
-///| 是否为单位字符（字母或 %）
 fn is_unit_char(u : UInt16) -> Bool {
   (u >= 'A' && u <= 'Z') || (u >= 'a' && u <= 'z') || u == '%'
 }
