@@ -37,8 +37,11 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 - 已支持 `!default` / `!global` 旗标（含重复旗标）。
 - 已修复规则块结尾无分号声明的解析（`c { d: $a }`）。
 
-### 3. 多文件 / 模块系统（directives 579 跳过）
-- `@import` / `@use` / `@forward` 不支持 —— sass-spec 大量用例因此无法单文件编译。
+### 3. 多文件 / 模块系统（API 已支持 @import，579 用例待 harness）
+已实现：`@import "path"` 内联（注入 reader 递归解析、去循环依赖）、`compile_many(inputs, read)`
+（File/Source 混用输入，逐个编译拼接）、根包 `compile_many` 便利入口、`Input::File`。
+待办：sass-spec 那 579 个多文件用例需 harness 工程（materialize partial + 相对路径解析 +
+dart-sass `loadPaths` + CLI 文件读取）才能真正跑差分；`@use`/`@forward` 尚未支持。
 
 ### 4. 控制流 / mixin（directives 79/776）
 已支持：`@if/@else if/@else`（比较/逻辑条件）、`@while`、`@for`、`@each`（多变量
