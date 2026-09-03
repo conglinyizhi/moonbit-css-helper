@@ -126,12 +126,12 @@ fn Parser::parse_at(self : Parser) -> Node? {
     return Some(For(var_name, from, to, body))
   }
   if name == "@each" {
-    let var_name = self.advance()
+    let vars = self.read_each_vars()
     self.consume("in")
     let list = self.read_until_brace()
     let body = self.parse_block()
     self.consume("}")
-    return Some(Each(var_name, list, body))
+    return Some(Each(vars, list, body))
   }
   if name == "@while" {
     let cond = self.read_until_brace()
@@ -172,6 +172,24 @@ fn Parser::parse_else_tail(self : Parser) -> Array[Node] {
     }
     _ => []
   }
+}
+
+///| 读取 `@each` 的变量名列表（$a, $b，逗号分隔）
+fn Parser::read_each_vars(self : Parser) -> Array[String] {
+  let vars : Array[String] = []
+  while true {
+    match self.peek() {
+      Some("in") => break
+      Some(",") => {
+        self.pos += 1
+      }
+      None => break
+      Some(_) => {
+        vars.push(self.advance())
+      }
+    }
+  }
+  vars
 }
 
 ///| 读取 `@include` 的实参：括号内逗号分隔，每项 join 成一个字符串

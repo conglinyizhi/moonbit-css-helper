@@ -20,7 +20,7 @@ pub(all) enum Node {
   /// `@for $i from A to B` 循环
   For(String, Array[String], Array[String], Array[Node])
   /// `@each $x in list` 列表迭代
-  Each(String, Array[String], Array[Node])
+  Each(Array[String], Array[String], Array[Node])
   /// `@while cond` 循环
   While(Array[String], Array[Node])
   /// 透传的 at-rule（如 @media / @supports）

@@ -176,8 +176,8 @@ fn gen(nodes : Array[Node], parent : Array[String], env : Env, sb : StringBuilde
       For(v, from, to, body) => {
         gen(expand_for(v, from, to, body, env), parent, env, sb)
       }
-      Each(v, list, body) => {
-        gen(expand_each(v, list, body, env), parent, env, sb)
+      Each(vars, list, body) => {
+        gen(expand_each(vars, list, body, env), parent, env, sb)
       }
       While(cond, body) => gen_while(cond, body, parent, env, sb)
       MixinCall(name, args, content) => gen_mixin_call(name, args, content, parent, env, sb)
@@ -239,9 +239,9 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
         gen(expand_for(v, from, to, body, env), parent, env, sb)
       })
     }
-    Each(v, list, body) => {
+    Each(vars, list, body) => {
       with_scope(env, () => {
-        gen(expand_each(v, list, body, env), parent, env, sb)
+        gen(expand_each(vars, list, body, env), parent, env, sb)
       })
     }
     While(cond, body) => gen_while(cond, body, parent, env, sb)
@@ -313,8 +313,8 @@ fn split_body(
           split_body(expanded, _full, env, decl_lines, struct_nodes)
         })
       }
-      Each(v, list, body2) => {
-        let expanded = expand_each(v, list, body2, env)
+      Each(vars, list, body2) => {
+        let expanded = expand_each(vars, list, body2, env)
         with_scope(env, () => {
           split_body(expanded, _full, env, decl_lines, struct_nodes)
         })
@@ -369,16 +369,31 @@ fn expand_for(
 
 ///| 展开 @each：把列表按 `,` 拆成多个值，对每个值替换 `$v` 并重复 body
 fn expand_each(
-  v : String,
+  vars : Array[String],
   list : Array[String],
   body : Array[Node],
   env : Env,
 ) -> Array[Node] {
   let out : Array[Node] = []
-  for group in split_on_commas(list) {
-    let val = resolve(group, env)
-    for s in substitute_var(body, v, val) {
-      out.push(s)
+  if vars.length() == 1 {
+    for group in split_on_commas(list) {
+      let val = resolve(group, env)
+      for s in substitute_var(body, vars[0], val) {
+        out.push(s)
+      }
+    }
+  } else {
+    for group in split_on_commas(list) {
+      let mut b = body
+      let mut k = 0
+      while k < vars.length() && k < group.length() {
+        let val = resolve([group[k]], env)
+        b = substitute_var(b, vars[k], val)
+        k += 1
+      }
+      for s in b {
+        out.push(s)
+      }
     }
   }
   out
@@ -526,7 +541,7 @@ fn subst_node(n : Node, v : String, val : String) -> Node {
       substitute_var(body, v, val),
     )
     Each(v2, list, body) => Each(
-      v2,
+      subst_toks(v2, v, val),
       subst_toks(list, v, val),
       substitute_var(body, v, val),
     )
