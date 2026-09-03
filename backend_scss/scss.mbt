@@ -8,7 +8,7 @@ pub fn scss_engine() -> @core.Engine {
     supports = (fmt) => fmt is @core.Scss,
     compile = (source) => {
       if is_sass_indent(source) {
-        raise @core.RabbitaError::UnsupportedSyntax("sass indent syntax")
+        return to_css(parse_sheet(tokenize(sass_to_scss(source))))
       }
       to_css(parse_sheet(tokenize(source)))
     },
