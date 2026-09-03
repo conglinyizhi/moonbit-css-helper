@@ -55,7 +55,7 @@ test {
 ## 引擎（可插拔）
 
 - `backend_css` — CSS 透传
-- `backend_scss` — SCSS 子集（变量、嵌套、`&`、`@mixin`/`@include`、`@if/@else`、`@for`、`@media` 透传）
+- `backend_scss` — SCSS 子集（变量、嵌套、`&`、`@mixin`/`@include`、`@if/@else`、`@for`、基础数字加减运算、`@media` 透传）
 
 架构预埋了嵌入式扩展位（后续可接入 dart-sass 等完整引擎），LESS 留插件位二期。
 

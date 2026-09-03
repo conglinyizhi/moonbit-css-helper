@@ -66,3 +66,13 @@ test "media" {
 
   ))
 }
+
+test "arith" {
+  inspect(compile("$gap: 8px; a { margin: $gap + 4px; padding: $gap - 2px; }"), content=(
+    #|a {
+    #|  margin: 12px;
+    #|  padding: 6px;
+    #|}
+    #|
+  ))
+}

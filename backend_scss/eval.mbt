@@ -2,12 +2,12 @@
 ///
 /// 维护变量/混入作用域，实现变量替换、规则嵌套展开、mixin 调用、
 /// `@if/@for` 控制流与 `@media` 透传。
-struct Mixin {
+priv struct Mixin {
   params : Array[String]
   body : Array[Node]
 }
 
-struct Env {
+priv struct Env {
   vars : Map[String, Array[String]]
   mixins : Map[String, Mixin]
 }
@@ -312,7 +312,7 @@ fn resolve(toks : Array[String], env : Env) -> String {
       parts.push(t)
     }
   }
-  parts.join(" ")
+  fold_arith(parts).join(" ")
 }
 
 ///| 值 token 数组拼接（用于 at-rule prelude 等）
@@ -341,4 +341,70 @@ fn join_nested(parent : String, sel : String) -> String {
   } else {
     parent + " " + sel
   }
+}
+
+///| 对值 token 做简单的数字加减折叠（`8px + 4px` -> `12px`）
+fn fold_arith(parts : Array[String]) -> Array[String] {
+  let out : Array[String] = []
+  let mut i = 0
+  while i < parts.length() {
+    if i + 2 < parts.length() && is_num_str(parts[i]) &&
+      (parts[i + 1] == "+" || parts[i + 1] == "-") && is_num_str(parts[i + 2]) {
+      out.push(calc_num(parts[i], parts[i + 1], parts[i + 2]))
+      i += 3
+    } else {
+      out.push(parts[i])
+      i += 1
+    }
+  }
+  out
+}
+
+///| 判断是否为数字字符串（可带单位）
+fn is_num_str(s : String) -> Bool {
+  let t = s.trim()
+  if t.length() == 0 {
+    return false
+  }
+  let mut j = t.length()
+  while j > 0 && is_unit_char(t[j - 1]) {
+    j -= 1
+  }
+  if j <= 0 {
+    return false
+  }
+  let mut k = 0
+  while k < j {
+    let c = t[k]
+    if !(c >= '0' && c <= '9') {
+      return false
+    }
+    k += 1
+  }
+  true
+}
+
+///| 计算 `a op b`（op 为 + 或 -），单位取第一个操作数
+fn calc_num(a : String, op : String, b : String) -> String {
+  let (na, ua) = split_num(a)
+  let (nb, _ub) = split_num(b)
+  let r = if op == "+" { na + nb } else { na - nb }
+  r.to_string() + ua
+}
+
+///| 拆数字与单位
+fn split_num(s : String) -> (Int, String) {
+  let t = s.trim()
+  let mut j = t.length()
+  while j > 0 && is_unit_char(t[j - 1]) {
+    j -= 1
+  }
+  let numpart = if j > 0 { t[0:j].to_owned() } else { t.to_owned() }
+  let unit = if j < t.length() { t[j:].to_owned() } else { "" }
+  (to_int(numpart), unit)
+}
+
+///| 是否为单位字符（字母或 %）
+fn is_unit_char(u : UInt16) -> Bool {
+  (u >= 'A' && u <= 'Z') || (u >= 'a' && u <= 'z') || u == '%'
 }

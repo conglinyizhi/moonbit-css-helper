@@ -2,7 +2,7 @@
 ///
 /// 递归下降，自顶向下解析一个样式表。声明、规则集、变量、mixin、
 /// 控制流都作为 `Node` 产出。
-struct Parser {
+priv struct Parser {
   toks : Array[String]
   mut pos : Int
 }
