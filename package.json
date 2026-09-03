@@ -6,6 +6,7 @@
     "diff": "node scripts/diff.mjs"
   },
   "devDependencies": {
+    "less": "^4.9.1",
     "sass": "^1.77.0"
   }
 }

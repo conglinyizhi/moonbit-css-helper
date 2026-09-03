@@ -721,7 +721,7 @@ fn fold_arith(parts : Array[String]) -> Array[String] {
   let mut i = 0
   while i < parts.length() {
     if i + 2 < parts.length() && is_num_str(parts[i]) &&
-      (parts[i + 1] == "+" || parts[i + 1] == "-") && is_num_str(parts[i + 2]) {
+      (parts[i + 1] == "+" || parts[i + 1] == "-" || parts[i + 1] == "*") && is_num_str(parts[i + 2]) {
       out.push(calc_num(parts[i], parts[i + 1], parts[i + 2]))
       i += 3
     } else {
@@ -758,7 +758,7 @@ fn is_num_str(s : String) -> Bool {
 fn calc_num(a : String, op : String, b : String) -> String {
   let (na, ua) = split_num(a)
   let (nb, _ub) = split_num(b)
-  let r = if op == "+" { na + nb } else { na - nb }
+  let r = if op == "+" { na + nb } else if op == "-" { na - nb } else { na * nb }
   r.to_string() + ua
 }
 
