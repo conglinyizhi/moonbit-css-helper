@@ -415,8 +415,7 @@ fn subst_toks(toks : Array[String], v : String, val : String) -> Array[String] {
 
 ///| 计算条件真假：非空、非 false
 fn eval_truthy(cond : Array[String], env : Env) -> Bool {
-  let r = resolve(cond, env).trim()
-  r.length() > 0 && r != "false"
+  v_bool(e_expr(cond, env))
 }
 
 ///| 把字符串解析为整数（去掉单位）

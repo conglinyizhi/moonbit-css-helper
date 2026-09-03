@@ -67,6 +67,14 @@ pub fn tokenize(src : String) -> Array[String] {
       i = j
       continue
     }
+    // 多字符运算符 `==` `!=` `>=` `<=`
+    if i + 1 < n && ((c == '=' && (src[i + 1] == '=' || src[i + 1] == '>')) ||
+      (c == '!' && src[i + 1] == '=') || (c == '>' && src[i + 1] == '=') ||
+      (c == '<' && src[i + 1] == '=')) {
+      toks.push(src[i:i + 2].to_owned())
+      i += 2
+      continue
+    }
     // `!word`（!default / !global / !important 等）作为一个整体 token
     if c == '!' {
       let mut j = i + 1

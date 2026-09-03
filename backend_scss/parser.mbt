@@ -99,6 +99,7 @@ fn Parser::parse_at(self : Parser) -> Node? {
     self.consume("}")
     let else_body = if self.peek() is Some("@else") {
       ignore(self.advance())
+      self.consume("{")
       let eb = self.parse_block()
       self.consume("}")
       eb

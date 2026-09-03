@@ -1,0 +1,2 @@
+$v: 4;
+a { @if $v > 3 { color: red; } @else { color: blue; } }

@@ -1,0 +1,2 @@
+$w: false;
+b { @if $w and true { x: 1; } @else { x: 2; } }
