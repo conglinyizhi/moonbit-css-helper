@@ -107,6 +107,10 @@ fn read_paren(source : String, open : Int, n : Int) -> (String, Int) {
         p.write_string(name)
       }
       k = m
+    } else if source[k] == ';' && depth == 1 {
+      // 参数顶层的 `;` 是 less 的参数分隔符 → 转 `,`
+      p.write_string(",")
+      k += 1
     } else {
       p.write_string(source[k:k + 1].to_owned())
       k += 1
