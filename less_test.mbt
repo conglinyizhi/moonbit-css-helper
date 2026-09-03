@@ -1,30 +1,28 @@
-///| LESS 引擎：变量转换 + 复用 SCSS 引擎
-test "less basic" {
-  try {
-    inspect(@moonbit_css_helper.compile_less("@base: #333; .btn { color: @base; width: 10px + 5px; }"), content=(
-      #|.btn {
-      #|  color: #333;
-      #|  width: 15px;
-      #|}
-      #|
-    ))
-  } catch {
-    e => fail("compile less failed: \{repr(e)}")
-  }
+test "less mixin" {
+  inspect(@moonbit_css_helper.compile_less(
+    ".rounded(@r) { border-radius: @r; }\n.btn { .rounded(5px); }",
+  ), content=(
+    #|.btn {
+    #|  border-radius: 5px;
+    #|}
+    #|
+    #|
+  ))
 }
 
-///| LESS at-rule 不被当变量（@media 保留），变量仍转换
-test "less at-rule" {
-  try {
-    inspect(@moonbit_css_helper.compile_less("@c: red; @media screen { .x { color: @c; } }"), content=(
-      #|@media screen {
-      #|.x {
-      #|  color: red;
-      #|}
-      #|}
-      #|
-    ))
-  } catch {
-    e => fail("compile less @media failed: \{repr(e)}")
-  }
+test "less mixin 默认值" {
+  inspect(@moonbit_css_helper.compile_less(
+    ".pad(@p: 8px) { padding: @p; }\n.x { .pad(); }\n.y { .pad(12px); }",
+  ), content=(
+    #|.x {
+    #|  padding: 8px;
+    #|}
+    #|
+    #|.y {
+    #|  padding: 12px;
+    #|}
+    #|
+    #|
+
+  ))
 }

@@ -221,7 +221,10 @@ fn Parser::read_invoke_args(self : Parser) -> Array[String] {
         }
       }
     }
-    out.push(cur.join(" "))
+    let last = cur.join(" ")
+    if last.length() > 0 {
+      out.push(last)
+    }
   }
   out
 }
