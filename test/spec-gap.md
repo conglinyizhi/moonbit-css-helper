@@ -39,9 +39,11 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 ### 3. 多文件 / 模块系统（directives 579 跳过）
 - `@import` / `@use` / `@forward` 不支持 —— sass-spec 大量用例因此无法单文件编译。
 
-### 4. 控制流 / mixin 细节（directives 127 个不一致）
-- `@each`、`@while`、`@for` 的步长/多值、`@content`、带参数 mixin 的默认值等未覆盖。
-- `@else if`、条件里的比较运算符（`==`/`<`/`>`）求值未实现。
+### 4. 控制流 / mixin 细节（directives 126 个不一致）
+已支持：基本 `@each $x in a,b,c` 列表迭代（含选择器/值插值，自带 each.scss 验证）。
+仍缺：`@each` 多变量解构、`@while`、`@for` 步长/多值、`@content`、带参数 mixin 默认值、
+`@return`、`@error/@warn/@debug`、条件里的比较运算符（`==`/`<`/`>`）。
+另有 579 个 sass-spec 多文件 `@import` 用例无法单文件编译（见 #3）。
 
 ## 结论
 

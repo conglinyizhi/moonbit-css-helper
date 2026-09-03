@@ -1,0 +1,3 @@
+@each $name in a, b, c {
+  .#{$name}-icon { width: 2px; }
+}

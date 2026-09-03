@@ -117,6 +117,9 @@ fn gen(nodes : Array[Node], parent : Array[String], env : Env, sb : StringBuilde
       For(v, from, to, body) => {
         gen(expand_for(v, from, to, body, env), parent, env, sb)
       }
+      Each(v, list, body) => {
+        gen(expand_each(v, list, body, env), parent, env, sb)
+      }
       MixinCall(name, args) => {
         match env.mixins.get(name) {
           Some(m) => gen(m.body, parent, env, sb)
@@ -178,6 +181,11 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
     For(v, from, to, body) => {
       with_scope(env, () => {
         gen(expand_for(v, from, to, body, env), parent, env, sb)
+      })
+    }
+    Each(v, list, body) => {
+      with_scope(env, () => {
+        gen(expand_each(v, list, body, env), parent, env, sb)
       })
     }
     MixinCall(name, args) => {
@@ -251,6 +259,12 @@ fn split_body(
           split_body(expanded, _full, env, decl_lines, struct_nodes)
         })
       }
+      Each(v, list, body2) => {
+        let expanded = expand_each(v, list, body2, env)
+        with_scope(env, () => {
+          split_body(expanded, _full, env, decl_lines, struct_nodes)
+        })
+      }
       other => struct_nodes.push(other)
     }
   }
@@ -292,6 +306,40 @@ fn expand_for(
   out
 }
 
+///| 展开 @each：把列表按 `,` 拆成多个值，对每个值替换 `$v` 并重复 body
+fn expand_each(
+  v : String,
+  list : Array[String],
+  body : Array[Node],
+  env : Env,
+) -> Array[Node] {
+  let out : Array[Node] = []
+  for group in split_on_commas(list) {
+    let val = resolve(group, env)
+    for s in substitute_var(body, v, val) {
+      out.push(s)
+    }
+  }
+  out
+}
+
+///| 按逗号拆分 token 数组
+fn split_on_commas(toks : Array[String]) -> Array[Array[String]] {
+  let groups : Array[Array[String]] = []
+  let mut cur : Array[String] = []
+  for t in toks {
+    if t == "," {
+      groups.push(cur)
+      let fresh : Array[String] = []
+      cur = fresh
+    } else {
+      cur.push(t)
+    }
+  }
+  groups.push(cur)
+  groups
+}
+
 fn substitute_var(nodes : Array[Node], v : String, val : String) -> Array[Node] {
   let out : Array[Node] = []
   for n in nodes {
@@ -314,6 +362,11 @@ fn subst_node(n : Node, v : String, val : String) -> Node {
       v2,
       subst_toks(from, v, val),
       subst_toks(to, v, val),
+      substitute_var(body, v, val),
+    )
+    Each(v2, list, body) => Each(
+      v2,
+      subst_toks(list, v, val),
       substitute_var(body, v, val),
     )
     AtRule(name, prelude, body) => AtRule(

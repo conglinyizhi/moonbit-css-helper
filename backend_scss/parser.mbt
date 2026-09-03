@@ -117,6 +117,14 @@ fn Parser::parse_at(self : Parser) -> Node? {
     self.consume("}")
     return Some(For(var_name, from, to, body))
   }
+  if name == "@each" {
+    let var_name = self.advance()
+    self.consume("in")
+    let list = self.read_until_brace()
+    let body = self.parse_block()
+    self.consume("}")
+    return Some(Each(var_name, list, body))
+  }
   if name == "@else" {
     // 独立 @else 通常紧随 @if，这里按空块处理以免死循环
     return None
@@ -313,6 +321,6 @@ fn is_joiner_char(u : UInt16) -> Bool {
 ///| 是否为选择器连接符（前不加空格）
 fn is_joiner(t : String) -> Bool {
   t == ":" || t == "." || t == "#" || t == "@" || t == "%" || t == "&" ||
-    t == ">" || t == "+" || t == "~" || t == "[" || t == "]" ||
+    t == ">" || t == "+" || t == "~" || t == "-" || t == "[" || t == "]" ||
     t.starts_with("#{")
 }
