@@ -102,12 +102,41 @@ fn gen_mixin_call(
 ///| 把实参按形参顺序绑定到当前作用域
 fn bind_params(m : Mixin, args : Array[String], env : Env) -> Unit {
   let mut i = 0
-  for p in m.params {
-    if p.length() > 0 && p[0] == '$' && i < args.length() {
-      Env::set_var(env, p, [args[i]], false)
-      i += 1
+  for pstr in m.params {
+    if pstr.contains("...") {
+      let v = pstr.replace(old="...", new="").trim().to_owned()
+      let rest = args[i:].to_array()
+      Env::set_var(env, v, [rest.join(", ")], false)
+    } else if pstr.contains(":") {
+      let colon = str_find_colon(pstr)
+      let name = pstr[0:colon].trim().to_owned()
+      let default = pstr[colon + 1:].trim().to_owned()
+      if i < args.length() {
+        Env::set_var(env, name, [args[i]], false)
+        i += 1
+      } else {
+        Env::set_var(env, name, [default], false)
+      }
+    } else {
+      let name = pstr.trim().to_owned()
+      if i < args.length() {
+        Env::set_var(env, name, [args[i]], false)
+        i += 1
+      }
     }
   }
+}
+
+///| 找第一个分号下标（找不到返回长度）
+fn str_find_colon(s : String) -> Int {
+  let mut i = 0
+  while i < s.length() {
+    if s[i] == ':' {
+      return i
+    }
+    i += 1
+  }
+  s.length()
 }
 
 ///| 从值 token 里解析 `!default` / `!global`，返回 (清洗后的值, default, global)

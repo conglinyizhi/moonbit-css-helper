@@ -1,0 +1,2 @@
+@mixin n($head...) { z: $head; }
+.b { @include n(a, b, c); }

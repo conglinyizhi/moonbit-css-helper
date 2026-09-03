@@ -204,18 +204,23 @@ fn Parser::read_params(self : Parser) -> Array[String] {
   if self.peek() is Some("(") {
     self.pos += 1
     let ps : Array[String] = []
+    let mut cur : Array[String] = []
     while true {
       match self.peek() {
         Some(")") => {
           self.pos += 1
+          ps.push(cur.join(" "))
           break
         }
         Some(",") => {
           self.pos += 1
+          ps.push(cur.join(" "))
+          let fresh : Array[String] = []
+          cur = fresh
         }
         None => break
         Some(_) => {
-          ps.push(self.advance())
+          cur.push(self.advance())
         }
       }
     }
