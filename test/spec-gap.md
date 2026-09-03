@@ -16,7 +16,7 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 | --- | --- | --- | --- | --- | --- |
 | test/cases（自写 11） | 11 | 11 | 0 | 0 | 0 |
 | spec/variables | 14 | 14 | 0 | 0 | 0 |
-| spec/operators | 30 | 3 | 26 | 0 | 1 |
+| spec/operators | 30 | 19 | 10 | 0 | 1 |
 | spec/directives | 776 | 79 | 118 | 0 | 579 |
 
 `dart-sass 无法编译` 多为 sass-spec 的多文件 `@import` 用例（单文件 `compileString` 缺依赖），
@@ -24,9 +24,10 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 
 ## 缺口分类（后续 roadmap）
 
-### 1. 运算 / 词法语义（operators 3/30，剩余为 value 系统深水区）
-已完成：值序列化改为运算符与相邻 token 紧密拼接（`c - d` → `c-d`、负值 `-1px`、`font: 12px/1.5`）。
-剩余 26 个 diff 属**完整 SCSS value/运算模型**（属全新求值器工程，子集不建议挤牙膏）：
+### 1. 运算 / 词法语义（operators 19/30，剩余为 value 系统深水区）
+已完成：值序列化运算符紧密拼接、`+` 字符串连接（`c + d` → `cd`）、裸括号吸收（`(c)-(d)` → `c-d`）、
+负值、`font: 12px/1.5`。
+剩余 10 个 diff 属**完整 SCSS value/运算模型**（属全新求值器工程，子集不建议挤牙膏）：
 - **括号吸收**：`c-(d)` 应运算吸收为 `c-d`，需真正表达式求值。
 - **标识符字符串连接**：`c + d` → `cd`（`+` 的非数字连接语义）。
 - **单位运算 / `calc()` / `infinity`/`NaN`**：需 Number 带单位、Color、CalcValue 等值类型。
@@ -40,11 +41,10 @@ node scripts/diff.mjs test/sass-spec/spec/variables
 - `@import` / `@use` / `@forward` 不支持 —— sass-spec 大量用例因此无法单文件编译。
 
 ### 4. 控制流 / mixin（directives 79/776）
-已支持：`@if/@else if/@else`（比较/逻辑条件）、`@while`、`@for`、`@each`（单变量+
-选择器/值插值）、`@content`、mixin 参数默认值与 `...` 可变参数、`@warn/@debug/@error`
-（忽略消息，旁随内容正常输出）。
-仍缺：`@each` 多变量解构、条件里的嵌套比较优先级完备、数学/颜色内置函数、
-`@return`。另有 579 个多文件 `@import` 用例无法单文件编译（见 #3）。
+已支持：`@if/@else if/@else`（比较/逻辑条件）、`@while`、`@for`、`@each`（多变量
+解构 + 选择器/值插值）、`@content`、mixin 参数默认值与 `...` 可变参数、
+`@warn/@debug/@error`（忽略消息，旁随内容正常输出）。
+仍缺：条件里的嵌套比较优先级完备、数学/颜色内置函数、`@return`。另有 579 个多文件 `@import` 用例无法单文件编译（见 #3）。
 
 ## 结论
 

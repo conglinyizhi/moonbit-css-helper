@@ -624,7 +624,7 @@ fn resolve(toks : Array[String], env : Env) -> String {
       parts.push(t)
     }
   }
-  join_value_tokens(fold_arith(parts))
+  join_value_tokens(fold_arith(strip_parens(parts)))
 }
 
 ///| 判断是否为运算符 token
@@ -632,23 +632,60 @@ fn is_op(t : String) -> Bool {
   t == "+" || t == "-" || t == "*" || t == "/" || t == "%"
 }
 
+///| 吸收裸分组括号（非函数调用）：(x) -> x
+fn strip_parens(parts : Array[String]) -> Array[String] {
+  let out : Array[String] = []
+  let mut i = 0
+  while i < parts.length() {
+    let t = parts[i]
+    if t == "(" && i + 2 < parts.length() && parts[i + 2] == ")" && !is_func_call(parts, i) {
+      out.push(parts[i + 1])
+      i += 3
+    } else {
+      out.push(t)
+      i += 1
+    }
+  }
+  out
+}
+
+///| 判断括号前的 token 是否为函数调用（如 calc( / rgb( ）
+fn is_func_call(parts : Array[String], i : Int) -> Bool {
+  i > 0 && is_ident_ish(parts[i - 1])
+}
+
+///| 粗略判断 token 是否为函数名
+fn is_ident_ish(s : String) -> Bool {
+  s.length() > 0 && (s[0] >= 'A' && s[0] <= 'Z') || (s[0] >= 'a' && s[0] <= 'z') || s[0] == '$'
+}
+
 ///| 值 token 序列化：运算符及其相邻 token 紧密拼接
 fn join_value_tokens(parts : Array[String]) -> String {
   let sb = StringBuilder()
   let mut prev_is_op = false
   for i, t in parts {
+    if t == "+" {
+      // 字符串连接：去除 +，且让前后 token 紧密（c + d -> cd）
+      prev_is_op = true
+      continue
+    }
+    let joined = is_op(t) || is_paren(t)
     if i == 0 {
-      prev_is_op = is_op(t)
+      prev_is_op = joined
     } else {
-      let cur_is_op = is_op(t)
-      if !cur_is_op && !prev_is_op {
+      if !joined && !prev_is_op {
         sb.write_string(" ")
       }
-      prev_is_op = cur_is_op
+      prev_is_op = joined
     }
     sb.write_string(t)
   }
   sb.to_string()
+}
+
+///| 是否为括号 token
+fn is_paren(t : String) -> Bool {
+  t == "(" || t == ")"
 }
 
 fn join_value(toks : Array[String], env : Env) -> String {
