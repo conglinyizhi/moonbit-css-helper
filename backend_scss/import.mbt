@@ -1,7 +1,8 @@
 ///| @import 内联与多文件编译入口
 ///
 /// `@import "path"` 节点在编译前用注入的 reader 递归展开，文件内容被
-/// 解析后内联到当前位置。读取函数由调用方注入，核心不耦合具体 IO。
+/// 解析后内联到当前位置（含嵌套规则/控制流内的 @import）。读取函数由
+/// 调用方注入，核心不耦合具体 IO。
 
 ///| 编译一段可能包含 `@import` 的源码
 pub fn compile_with_imports(
@@ -13,7 +14,7 @@ pub fn compile_with_imports(
   to_css(resolved)
 }
 
-///| 递归展开 import 节点
+///| 递归展开 import 节点（顶层）
 fn walk_imports(
   nodes : Array[Node],
   read : (String) -> String raise @core.RabbitaError,
@@ -37,10 +38,28 @@ fn walk_imports(
           }
         }
       }
-      other => out.push(other)
+      other => out.push(walk_into(other, read, visited))
     }
   }
   out
+}
+
+///| 递归深入嵌套块，处理其中的 @import
+fn walk_into(
+  n : Node,
+  read : (String) -> String raise @core.RabbitaError,
+  visited : Array[String],
+) -> Node raise @core.RabbitaError {
+  match n {
+    RuleSet(sel, body) => RuleSet(sel, walk_imports(body, read, visited))
+    If(cond, tb, eb) => If(cond, walk_imports(tb, read, visited), walk_imports(eb, read, visited))
+    For(v, f, t, b) => For(v, f, t, walk_imports(b, read, visited))
+    Each(v, l, b) => Each(v, l, walk_imports(b, read, visited))
+    While(cond, b) => While(cond, walk_imports(b, read, visited))
+    AtRule(name, prelude, b) => AtRule(name, prelude, walk_imports(b, read, visited))
+    MixinCall(nm, ar, cb) => MixinCall(nm, ar, walk_imports(cb, read, visited))
+    other => other
+  }
 }
 
 ///| 数组中是否含某字符串

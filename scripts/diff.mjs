@@ -123,6 +123,9 @@ for (const r of rows) {
     console.log(`\n[D I F F] ${r.id}`)
     console.log(`  sass  : ${r.oracle}`)
     console.log(`  moonbt: ${r.mb}`)
+  } else if (r.status === 'oracle_error' && shown < 25) {
+    shown++
+    console.log(`\n[ORCL_ERR] ${r.id}`)
   } else if (r.status === 'mb_error' && shown < 25) {
     shown++
     console.log(`\n[MB_ERR] ${r.id}  (dart-sass 能编译, moonbit 报错)`)
