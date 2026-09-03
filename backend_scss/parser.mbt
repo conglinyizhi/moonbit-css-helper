@@ -90,7 +90,7 @@ fn Parser::parse_at(self : Parser) -> Node? {
   }
   if name == "@include" {
     let inc_name = self.advance()
-    let args = self.read_value()
+    let args = self.read_invoke_args()
     return Some(MixinCall(inc_name, args))
   }
   if name == "@if" {
@@ -134,6 +134,35 @@ fn Parser::parse_at(self : Parser) -> Node? {
   let body = self.parse_block()
   self.consume("}")
   return Some(AtRule(name, prelude, body))
+}
+
+///| 读取 `@include` 的实参：括号内逗号分隔，每项 join 成一个字符串
+fn Parser::read_invoke_args(self : Parser) -> Array[String] {
+  let out : Array[String] = []
+  if self.peek() is Some("(") {
+    self.pos += 1
+    let mut cur : Array[String] = []
+    while true {
+      match self.peek() {
+        Some(")") => {
+          self.pos += 1
+          break
+        }
+        Some(",") => {
+          out.push(cur.join(" "))
+          self.pos += 1
+          let fresh : Array[String] = []
+          cur = fresh
+        }
+        None => break
+        Some(_) => {
+          cur.push(self.advance())
+        }
+      }
+    }
+    out.push(cur.join(" "))
+  }
+  out
 }
 
 ///| mixin 参数：`(a, b)` 或空

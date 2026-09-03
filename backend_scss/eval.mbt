@@ -81,6 +81,34 @@ fn with_scope(env : Env, f : () -> Unit) -> Unit {
   Env::pop_scope(env)
 }
 
+///| 生成一次 mixin 调用（绑定实参）
+fn gen_mixin_call(
+  name : String,
+  args : Array[String],
+  parent : Array[String],
+  env : Env,
+  sb : StringBuilder,
+) -> Unit {
+  match env.mixins.get(name) {
+    Some(m) => with_scope(env, () => {
+      bind_params(m, args, env)
+      gen(m.body, parent, env, sb)
+    })
+    None => ()
+  }
+}
+
+///| 把实参按形参顺序绑定到当前作用域
+fn bind_params(m : Mixin, args : Array[String], env : Env) -> Unit {
+  let mut i = 0
+  for p in m.params {
+    if p.length() > 0 && p[0] == '$' && i < args.length() {
+      Env::set_var(env, p, [args[i]], false)
+      i += 1
+    }
+  }
+}
+
 ///| 从值 token 里解析 `!default` / `!global`，返回 (清洗后的值, default, global)
 fn parse_flags(value : Array[String]) -> (Array[String], Bool, Bool) {
   let cleaned : Array[String] = []
@@ -120,12 +148,7 @@ fn gen(nodes : Array[Node], parent : Array[String], env : Env, sb : StringBuilde
       Each(v, list, body) => {
         gen(expand_each(v, list, body, env), parent, env, sb)
       }
-      MixinCall(name, args) => {
-        match env.mixins.get(name) {
-          Some(m) => gen(m.body, parent, env, sb)
-          None => ()
-        }
-      }
+      MixinCall(name, args) => gen_mixin_call(name, args, parent, env, sb)
       VarDef(name, value) => apply_vardef(env, name, value)
       MixinDef(name, params, body) => {
         env.mixins[name] = { params, body }
@@ -188,12 +211,7 @@ fn gen_struct(node : Node, parent : Array[String], env : Env, sb : StringBuilder
         gen(expand_each(v, list, body, env), parent, env, sb)
       })
     }
-    MixinCall(name, args) => {
-      match env.mixins.get(name) {
-        Some(m) => gen(m.body, parent, env, sb)
-        None => ()
-      }
-    }
+    MixinCall(name, args) => gen_mixin_call(name, args, parent, env, sb)
     VarDef(name, value) => apply_vardef(env, name, value)
     MixinDef(name, params, body) => {
       env.mixins[name] = { params, body }
@@ -242,6 +260,7 @@ fn split_body(
       MixinCall(name, args) => {
         match env.mixins.get(name) {
           Some(m) => with_scope(env, () => {
+            bind_params(m, args, env)
             split_body(m.body, _full, env, decl_lines, struct_nodes)
           })
           None => ()
