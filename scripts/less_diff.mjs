@@ -7,7 +7,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, basename } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
-const MB_BIN = join(root, '_build/native/debug/build/cmd/compile_less/compile_less.exe')
+const MB_BIN = join(root, '_build/native/debug/build/cmd/cli/cli.exe')
 const casesDir = process.argv[2] || join(root, 'test/less_cases')
 const BATCH = 40
 
@@ -34,7 +34,7 @@ for (let i = 0; i < cases.length; i += BATCH) {
   const payload = chunk.map((c) => readFileSync(c, 'utf8')).join('\u0000')
   let out = ''
   try {
-    out = execFileSync(MB_BIN, { input: payload }).toString()
+    out = execFileSync(MB_BIN, ['compile-less'], { input: payload }).toString()
   } catch {
     // 进程非零退出：全部按失败处理
   }

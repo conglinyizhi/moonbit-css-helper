@@ -1,6 +1,0 @@
-import {
-  "conglinyizhi/moonbit_css_helper" @moonbit_css_helper,
-  "conglinyizhi/moonbit_css_helper/core" @core,
-}
-
-pkgtype(kind: "executable")
