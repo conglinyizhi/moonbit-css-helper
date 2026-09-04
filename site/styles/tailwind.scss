@@ -1,0 +1,55 @@
+// 我们自己的 minimal tailwind-like CSS（用 moonbit_css_helper 的 SCSS 写）
+// 变量 + @each 生成 utility 类。够站内用即可。
+// 注意：@each 遍历变量时，list 用「空格分隔键值 + 逗号分隔项」，不要外层括号
+//（括号会被当作裸括号吸收成单个值）。
+
+$spacing: 0 0, 1 0.25rem, 2 0.5rem, 4 1rem, 6 1.5rem, 8 2rem;
+$colors: red #ef4444, blue #3b82f6, green #22c55e, gray #6b7280, zinc #18181b, white #ffffff;
+
+// 外边距 / 内边距 utility（m-4 / px-2 / mt-6 等）
+@each $k, $v in $spacing {
+  .m-#{$k} { margin: $v; }
+  .mx-#{$k} { margin-left: $v; margin-right: $v; }
+  .my-#{$k} { margin-top: $v; margin-bottom: $v; }
+  .mt-#{$k} { margin-top: $v; }
+  .mb-#{$k} { margin-bottom: $v; }
+  .p-#{$k} { padding: $v; }
+  .px-#{$k} { padding-left: $v; padding-right: $v; }
+  .py-#{$k} { padding-top: $v; padding-bottom: $v; }
+  .pt-#{$k} { padding-top: $v; }
+  .pb-#{$k} { padding-bottom: $v; }
+}
+
+// 文本 / 背景颜色 utility（text-red-500 / bg-blue-500 等）
+@each $name, $hex in $colors {
+  .text-#{$name} { color: $hex; }
+  .bg-#{$name} { background-color: $hex; }
+}
+
+// 布局
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.grid { display: grid; }
+.hidden { display: none; }
+.flex-row { flex-direction: row; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.w-full { width: 100%; }
+.h-screen { height: 100vh; }
+
+// 文本
+.text-sm { font-size: 0.875rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.font-bold { font-weight: 700; }
+.text-center { text-align: center; }
+
+// 边框 / 圆角 / 其他
+.border { border: 1px solid #e5e7eb; }
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.12); }

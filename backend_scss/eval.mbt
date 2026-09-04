@@ -377,15 +377,16 @@ fn expand_each(
   env : Env,
 ) -> Array[Node] {
   let out : Array[Node] = []
+  let list_src = deref_each_list(list, env)
   if vars.length() == 1 {
-    for group in split_on_commas(list) {
+    for group in split_on_commas(list_src) {
       let val = resolve(group, env)
       for s in substitute_var(body, vars[0], val) {
         out.push(s)
       }
     }
   } else {
-    for group in split_on_commas(list) {
+    for group in split_on_commas(list_src) {
       let mut b = body
       let mut k = 0
       while k < vars.length() && k < group.length() {
@@ -397,6 +398,51 @@ fn expand_each(
         out.push(s)
       }
     }
+  }
+  out
+}
+
+///| 若 @each 的 list 是单个 `$var` 引用，解引用成其值 token 数组（含逗号），
+///| 否则原样。这样 `@each $k, $v in $spacing` 能遍历变量里的逗号分隔项。
+fn deref_each_list(list : Array[String], env : Env) -> Array[String] {
+  if list.length() == 1 && list[0].length() > 0 && list[0][0] == '$' {
+    match Env::get_var(env, list[0]) {
+      // 变量存的是 resolve 后的单字符串（可能含逗号分隔的 list），
+      // 拆回逗号/空格分隔的 token 数组，供 split_on_commas 解构。
+      Some(v) => if v.length() == 1 {
+        spread_list_string(v[0])
+      } else {
+        v
+      }
+      None => list
+    }
+  } else {
+    list
+  }
+}
+
+///| 把 "0 0, 1 0.25rem" 这类字符串拆成 [0, 0, ",", 1, 0.25rem] token
+fn spread_list_string(s : String) -> Array[String] {
+  let out : Array[String] = []
+  let mut cur = StringBuilder()
+  for ch in s {
+    if ch == ' ' || ch == '\t' {
+      if cur.to_string().length() > 0 {
+        out.push(cur.to_string())
+        cur = StringBuilder()
+      }
+    } else if ch == ',' {
+      if cur.to_string().length() > 0 {
+        out.push(cur.to_string())
+        cur = StringBuilder()
+      }
+      out.push(",")
+    } else {
+      cur.write_char(ch)
+    }
+  }
+  if cur.to_string().length() > 0 {
+    out.push(cur.to_string())
   }
   out
 }
