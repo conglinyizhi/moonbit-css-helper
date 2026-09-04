@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>moonbit_css_helper 浏览器运行时（wasm-gc 版）</title>
+<style lang="scss">
+$c: blue;
+.card { color: $c; .title { font-weight: bold; } }
+</style>
+<style lang="less">
+@c: green;
+.banner { color: @c; width: 10px * 2; }
+</style>
+<style lang="sass">
+$c: red
+.btn
+  color: $c
+  a
+    margin: 4px 8px
+</style>
+</head>
+<body>
+<h1>moonbit_css_helper 浏览器运行时（wasm-gc）</h1>
+<p>三个模块在 wasm 内编译后替换为普通 CSS。控制台应输出 compiled 3 style module(s)。</p>
+<div class="card">SCSS</div>
+<div class="banner">LESS</div>
+<div class="btn">SASS</div>
+<script src="./runtime.js"></script>
+</body>
+</html>
