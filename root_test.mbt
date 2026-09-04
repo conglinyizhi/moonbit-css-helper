@@ -112,3 +112,25 @@ test "less mixin 默认值" {
 
   ))
 }
+
+///| 变量注入：未定义的 $c 通过 vars 预置为 red
+test "compile_scss_with_vars 注入预置变量" {
+  let css = try @precss.compile_scss_with_vars("body { color: $c; }", Map::of([("c", "red")])) catch { _ => "" }
+  inspect(css, content="body {\n  color: red;\n}\n")
+}
+
+///| 注入多变量 + 单位
+test "compile_scss_with_vars 注入多变量" {
+  let css = try @precss.compile_scss_with_vars(".a { margin: $gap; color: $c; }", Map::of([("gap", "8px"), ("c", "blue")])) catch { _ => "" }
+  inspect(css, content=".a {\n  margin: 8px;\n  color: blue;\n}\n")
+}
+
+///| 保守压缩：去块注释/空白/换行，字符串值原样保留
+test "minify_css 保守压缩" {
+  inspect(@precss.minify_css("body { color: red; }\n/* c */ .a { width: 1px; }"), content="body{color:red;}.a{width:1px;}")
+}
+
+///| 字符串值里的空白不被压缩（content/url 等）
+test "minify_css 保留字符串值" {
+  inspect(@precss.minify_css("a { content: \"a  b \"; }"), content="a{content:\"a  b \";}")
+}
