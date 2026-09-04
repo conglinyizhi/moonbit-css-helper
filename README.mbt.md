@@ -1,15 +1,15 @@
-# conglinyizhi/moonbit-css-helper
+# conglinyizhi/precss
 
 可插拔的 CSS 预处理器编译门面：一个函数把 **SCSS / SASS / LESS / CSS** 源码（或文件）编译成 CSS。
 核心只做「识别格式 → 路由到后端引擎 → 统一错误」，引擎可插拔、输入可单可多、文件读取由调用方注入（核心零 IO 耦合）。SCSS / SASS / LESS 各自有**独立引擎**，随库附带**单一 CLI 可执行**（compile / format / diagnose 等 subcommand）。
 
-> 对外名 `moonbit-css-helper`；**import 路径**用下划线 `conglinyizhi/moonbit_css_helper`
+> 对外名 `precss`；**import 路径**用下划线 `conglinyizhi/precss`
 > （MoonBit 包名含连字符会让 `_test.mbt`/`README` 的 auto-import alias 失效，故标识收成下划线）。
 
 ## 安装
 
 ```bash
-moon add conglinyizhi/moonbit_css_helper
+moon add conglinyizhi/precss
 ```
 
 ## 快速开始
@@ -18,7 +18,7 @@ moon add conglinyizhi/moonbit_css_helper
 test {
   // 自动识别格式编译
   inspect(
-    @moonbit_css_helper.compile("$c: red; body { color: $c; }"),
+    @precss.compile("$c: red; body { color: $c; }"),
     content=(#|body {
     #|  color: red;
     #|}
@@ -32,7 +32,7 @@ test {
 test {
   // SCSS 变量 + 嵌套
   inspect(
-    @moonbit_css_helper.compile_scss("$gap: 8px; a { margin: $gap; b { padding: $gap; } }"),
+    @precss.compile_scss("$gap: 8px; a { margin: $gap; b { padding: $gap; } }"),
     content=(#|a {
     #|  margin: 8px;
     #|}
@@ -49,7 +49,7 @@ test {
 test {
   // LESS：变量 + 类 mixin（含参数默认值）
   inspect(
-    @moonbit_css_helper.compile_less(".pad(@p: 8px) { padding: @p; }\n.x { .pad(); }"),
+    @precss.compile_less(".pad(@p: 8px) { padding: @p; }\n.x { .pad(); }"),
     content=(#|.x {
     #|  padding: 8px;
     #|}
@@ -63,7 +63,7 @@ test {
 ```mbt check
 test {
   // 显式指定为 CSS（透传）
-  inspect(@moonbit_css_helper.compile_css("body { color: red; }"), content="body { color: red; }")
+  inspect(@precss.compile_css("body { color: red; }"), content="body { color: red; }")
 }
 ```
 
@@ -77,7 +77,7 @@ test {
   let read = fn(p : String) -> String raise @core.RabbitaError {
     if p == "a.scss" { "$c: blue; .x { color: $c; }" } else { "" }
   }
-  inspect(@moonbit_css_helper.compile_many(
+  inspect(@precss.compile_many(
     [@core.Input::Source("body { color: red; }"),
      @core.Input::File("a.scss"),        // read 读取，内容里的 @import 也会内联
      @core.Input::Source(".y { width: 1px; }")],
@@ -172,7 +172,7 @@ let read = fn(p : String) -> String raise @core.RabbitaError {
   // 从构建期 scss 源码 map 读，或从文件系统读（读文件用 @fs，见下方坑）
   scss_sources.get(p) or ""
 }
-let css = @moonbit_css_helper.compile_many(
+let css = @precss.compile_many(
   [@core.Input::File("app.scss"),
    @core.Input::File("partials/_button.scss"),
    @core.Input::Source("$z: 10; .top { z-index: $z; }")],

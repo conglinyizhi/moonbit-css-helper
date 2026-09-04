@@ -1,3 +1,3 @@
 import {
-  "conglinyizhi/moonbit_css_helper/core",
+  "conglinyizhi/precss/core",
 }

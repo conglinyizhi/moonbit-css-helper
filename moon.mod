@@ -1,15 +1,15 @@
-// moon.mod for conglinyizhi/moonbit_css_helper
+// moon.mod for conglinyizhi/precss
 // A pluggable CSS preprocessor compile facade for MoonBit.
 //
 // To add a dependency:
 //   moon add <module>@<version>
-name = "conglinyizhi/moonbit_css_helper"
+name = "conglinyizhi/precss"
 
 version = "0.1.0"
 
 readme = "README.mbt.md"
 
-repository = "https://github.com/conglinyizhi/moonbit-css-helper"
+repository = "https://github.com/conglinyizhi/precss"
 
 license = "Apache-2.0"
 

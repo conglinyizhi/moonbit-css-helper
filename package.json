@@ -1,5 +1,5 @@
 {
-  "name": "moonbit-css-helper-diff",
+  "name": "precss-diff",
   "private": true,
   "type": "module",
   "scripts": {

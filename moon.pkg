@@ -1,11 +1,11 @@
 import {
-  "conglinyizhi/moonbit_css_helper/core",
-  "conglinyizhi/moonbit_css_helper/backend_css",
-  "conglinyizhi/moonbit_css_helper/backend_scss",
-  "conglinyizhi/moonbit_css_helper/backend_less",
+  "conglinyizhi/precss/core",
+  "conglinyizhi/precss/backend_css",
+  "conglinyizhi/precss/backend_scss",
+  "conglinyizhi/precss/backend_less",
 }
 
 import {
-  "conglinyizhi/moonbit_css_helper/core",
-  "conglinyizhi/moonbit_css_helper/backend_less",
+  "conglinyizhi/precss/core",
+  "conglinyizhi/precss/backend_less",
 } for "test"

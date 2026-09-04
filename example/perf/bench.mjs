@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 性能基准：moonbit_css_helper vs 官方核心（dart-sass / less.js）
+// 性能基准：precss vs 官方核心（dart-sass / less.js）
 //
 // 从同一棵随机树发射 scss / sass(缩进) / less 三种等价源码，保证三组逻辑一致、
 // 两边都能编译（生成器只产 moonbit 支持子集内的结构），比的是"引擎速度"。
@@ -159,7 +159,7 @@ async function main() {
     return `${name.padEnd(6)} ${pad(m.toFixed(1))} ${pad(d.toFixed(1))} ${pad(speed(m, d))}${flag}`
   }
 
-  console.log(`\n===== moonbit_css_helper 性能基准（份数=${N} 深度=${DEPTH} seed=${SEED}）=====`)
+  console.log(`\n===== precss 性能基准（份数=${N} 深度=${DEPTH} seed=${SEED}）=====`)
   console.log(`${'格式'.padEnd(6)} ${'moonbit(ms)'.padStart(12)} ${'官方(ms)'.padStart(12)} ${'moonbit/官方'.padStart(12)}`)
   console.log('------------------------------------------------------------')
   console.log(line('scss', mScss.ms, dScss.ms, vScss))

@@ -1,7 +1,7 @@
 import {
-  "conglinyizhi/moonbit_css_helper" @mb,
-  "conglinyizhi/moonbit_css_helper/backend_scss" @scss,
-  "conglinyizhi/moonbit_css_helper/backend_less" @less,
+  "conglinyizhi/precss" @mb,
+  "conglinyizhi/precss/backend_scss" @scss,
+  "conglinyizhi/precss/backend_less" @less,
   "moonbitlang/core/env" @env,
   "moonbitlang/async",
   "moonbitlang/async/stdio" @stdio,

@@ -1,4 +1,4 @@
-// moonbit_css_helper 浏览器运行时：扫描 `<style lang="scss|less|sass">`，
+// precss 浏览器运行时：扫描 `<style lang="scss|less|sass">`，
 // 用 MoonBit 编译成 CSS 后替换原标签。多个模块 / 混用格式都行。
 import { compile_scss, compile_less } from './web.js'
 
@@ -14,7 +14,7 @@ function initStyles() {
     out.setAttribute('data-compiled', '1')
     st.replaceWith(out)
   }
-  console.log(`moonbit-css-helper: compiled ${nodes.length} style module(s)`)
+  console.log(`precss: compiled ${nodes.length} style module(s)`)
 }
 
 if (document.readyState === 'loading') {

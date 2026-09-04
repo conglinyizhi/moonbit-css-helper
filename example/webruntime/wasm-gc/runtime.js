@@ -18,6 +18,6 @@ WebAssembly.instantiateStreaming(fetch('./web.wasm'), importObject)
       out.setAttribute('data-compiled', '1')
       st.replaceWith(out)
     }
-    console.log(`moonbit-css-helper (wasm-gc): compiled ${nodes.length} style module(s)`)
+    console.log(`precss (wasm-gc): compiled ${nodes.length} style module(s)`)
   })
-  .catch((e) => console.error('moonbit-css-helper (wasm-gc) init failed:', e))
+  .catch((e) => console.error('precss (wasm-gc) init failed:', e))

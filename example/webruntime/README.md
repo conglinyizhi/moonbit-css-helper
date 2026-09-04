@@ -1,4 +1,4 @@
-# moonbit_css_helper 浏览器运行时范例
+# precss 浏览器运行时范例
 
 把库编译到浏览器运行，扫描 `<style lang="scss|less|sass">` 标签，加载后用 MoonBit
 把源码编译成 CSS，创建新 `<style>` 替换原标签。多个模块 / 混用 scss / less / sass 都行。

@@ -1,6 +1,6 @@
 ///| 统一 CLI：一个可执行 + 多个 subcommand（compile / compile-less / format / help）
 ///
-/// 库（moonbit_css_helper）保持纯，这里是独立交付的 CLI 产物。
+/// 库（precss）保持纯，这里是独立交付的 CLI 产物。
 /// `opts`: 子命令本身逻辑
 async fn main {
   let args = @env.args()
@@ -20,7 +20,7 @@ async fn main {
 }
 
 fn print_help() -> Unit {
-  println("moonbit-css-helper CLI")
+  println("precss CLI")
   println("")
   println("用法：moon run cmd/cli -- <subcommand>")
   println("")
