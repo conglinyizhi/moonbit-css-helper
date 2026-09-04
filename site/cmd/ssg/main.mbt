@@ -82,7 +82,7 @@ fn home_page() -> @rabbita.Val[@html.Html] {
       @html.node("head", @html.Attrs::build(), [
         @html.node(
           "link",
-          @html.Attrs::build().rel("stylesheet").href("site.css"),
+          @html.Attrs::build().rel("stylesheet").href("site.css?v=4"),
           @html.nothing,
         ),
         @html.node(
@@ -130,28 +130,41 @@ fn home_page() -> @rabbita.Val[@html.Html] {
             @html.text("左边编辑器用 CodeMirror 实现着色；右侧不是"),
           ]),
           // 双栏编辑器：左输入 next-gen CSS，右输出浏览器兼容 CSS（实时）
-          @html.node("div", @html.Attrs::build().class("site-editor"), [
-            @html.node("div", @html.Attrs::build().class("editor-col"), [
+          @html.node("div", @html.Attrs::build().class("site-editor").id("try"), [
+            @html.node("div", @html.Attrs::build().class("engine-control engine-loading"), [
+              @html.node("label", @html.Attrs::build().class("engine-switch"), [
+                @html.node("span", @html.Attrs::build().class("engine-wasm-label"), [@html.text("WASM")]),
+                @html.node("input", @html.Attrs::build().type_("checkbox").id("wasm-toggle").checked(true), @html.nothing),
+                @html.node("span", @html.Attrs::build().class("engine-switch-track"), [
+                  @html.node("span", @html.Attrs::build().class("engine-switch-thumb"), @html.nothing),
+                ]),
+                @html.node("span", @html.Attrs::build().class("engine-js-label"), [@html.text("JS")]),
+              ]),
+              @html.node("span", @html.Attrs::build().class("engine-js-only"), [@html.text("JS Only")]),
+            ]),
+            @html.node("div", @html.Attrs::build().class("editor-col editor-input-col"), [
               @html.node("div", @html.Attrs::build().class("editor-head"), [
                 @html.node("div", @html.Attrs::build().class("editor-head-left"), [
-                  @html.text("输入"),
-                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "scss"), [@html.text("SCSS")]),
-                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "sass"), [@html.text("SASS")]),
-                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "less"), [@html.text("LESS")]),
+                  @html.node("span", @html.Attrs::build().class("editor-head-title"), [@html.text("输入")]),
+                  @html.node("div", @html.Attrs::build().class("lang-group"), [
+                    @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "scss"), [@html.text("SCSS")]),
+                    @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "sass"), [@html.text("SASS")]),
+                    @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "less"), [@html.text("LESS")]),
+                  ]),
                 ]),
               ]),
               @html.node("textarea", @html.Attrs::build().id("scss-in"), [
                 @html.text(".card {\n  background: $yellow;\n  color: $green;\n  border: 2px solid $red;\n  .title {\n    box-shadow: 0 0 6px $blue;\n  }\n}"),
               ]),
             ]),
-            @html.node("div", @html.Attrs::build().class("editor-col"), [
-              @html.node("div", @html.Attrs::build().class("editor-head").class("editor-head-out"), [
+            @html.node("div", @html.Attrs::build().class("editor-col editor-output-col"), [
+              @html.node("div", @html.Attrs::build().class("editor-head editor-head-out"), [
                 @html.node("div", @html.Attrs::build().class("lang-group"), [
                   @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "less"), [@html.text("LESS")]),
                   @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "sass"), [@html.text("SASS")]),
                   @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "scss"), [@html.text("SCSS")]),
-                  @html.text("输出"),
                 ]),
+                @html.node("span", @html.Attrs::build().class("editor-head-title"), [@html.text("输出")]),
               ]),
               @html.node("pre", @html.Attrs::build().id("css-out"), @html.nothing),
             ]),
@@ -189,7 +202,7 @@ fn home_page() -> @rabbita.Val[@html.Html] {
         // 本地 CodeMirror + demo（不依赖运行时 CDN）
         @html.node("script", @html.Attrs::build().src("./codemirror/lib/codemirror.js"), @html.nothing),
         @html.node("script", @html.Attrs::build().src("./codemirror/mode/css/css.js"), @html.nothing),
-        @html.node("script", @html.Attrs::build().type_("module").src("./demo.js"), @html.nothing),
+        @html.node("script", @html.Attrs::build().type_("module").src("./demo.js?v=4"), @html.nothing)
       ]),
     ])
   })

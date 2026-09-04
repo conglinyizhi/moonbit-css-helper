@@ -42,11 +42,17 @@ jobs:
           moon update
           MOON_CC=clang MOON_AR=ar MOON_LD=clang moon run cmd/ssg --target native
 
-      # webruntime 的 JS backend 产物（demo.js 的 import './web.js' 依赖它）
+      # webruntime 的 JS backend 产物（demo.js 的 import './web.js' 依赖它；wasm 加载失败时回退用）
       - name: 构建并复制 webruntime web.js
         run: |
           MOON_CC=clang MOON_AR=ar MOON_LD=clang moon build --target js example/webruntime/web
           cp _build/js/debug/build/example/webruntime/web/web.js site/out/web.js
+
+      # webruntime 的 wasm-gc 产物（demo.js 优先加载 web.wasm 作为编译引擎）
+      - name: 构建并复制 webruntime wasm-gc
+        run: |
+          MOON_CC=clang MOON_AR=ar MOON_LD=clang moon build --target wasm-gc example/webruntime/wasm
+          cp _build/wasm-gc/debug/build/example/webruntime/wasm/wasm.wasm site/out/web.wasm
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

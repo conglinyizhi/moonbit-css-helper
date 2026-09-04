@@ -1,6 +1,70 @@
 // 双栏编辑器：左 CodeMirror（scss 高亮）+ 语言下拉 + 载入示例 + 变量注入（kv）+ 压缩输出
-// 用 webruntime 编译的 web.js（compile_scss / compile_less / minify_css）
-import { compile_scss, compile_less, minify_css } from './web.js'
+// 编译引擎：优先用 webruntime 编译的 wasm-gc 版本（web.wasm），失败回退 JS backend web.js
+const wasmImport = {
+  spectest: { print_char: (c) => {} },
+  'moonbit:ffi': { make_closure: (f, c) => f.bind(null, c) },
+}
+let eng = null // 当前引擎
+let wasmEng = null
+let jsEng = null
+let wasmReady = false
+let engMode = 'loading' // wasm | js | loading
+function makeEngine(src) {
+  return { compile_scss: src.compile_scss, compile_less: src.compile_less, minify_css: src.minify_css }
+}
+async function loadWasmEngine() {
+  const res = await fetch('./web.wasm')
+  if (!res.ok) throw new Error(`web.wasm: ${res.status}`)
+  const bytes = await res.arrayBuffer()
+  const { instance } = await WebAssembly.instantiate(bytes, wasmImport, {
+    builtins: ['js-string'],
+    importedStringConstants: '_',
+  })
+  instance.exports._start?.()
+  const candidate = makeEngine(instance.exports)
+  // 不只检查模块能否实例化，还做一次实际编译，确认浏览器里的引擎可用
+  candidate.compile_scss('.precss-wasm-probe { color: red; }')
+  return candidate
+}
+async function loadJsEngine() {
+  if (!jsEng) jsEng = makeEngine(await import('./web.js'))
+  return jsEng
+}
+async function loadEngine() {
+  try {
+    wasmEng = await loadWasmEngine()
+    wasmReady = true
+    eng = wasmEng
+    engMode = 'wasm'
+  } catch (e) {
+    console.warn('[precss] WASM unavailable; using JS backend:', e)
+    wasmReady = false
+    eng = await loadJsEngine()
+    engMode = 'js'
+  }
+  updateEngineControl()
+}
+function updateEngineControl() {
+  const control = document.querySelector('.engine-control')
+  if (!control) return
+  control.classList.toggle('engine-loading', engMode === 'loading')
+  control.classList.toggle('engine-unavailable', !wasmReady && engMode === 'js')
+  const toggle = document.querySelector('#wasm-toggle')
+  const sw = document.querySelector('.engine-switch')
+  if (toggle) toggle.checked = engMode === 'wasm'
+  if (sw) sw.classList.toggle('js-selected', engMode === 'js')
+}
+async function selectEngine(mode) {
+  if (mode === 'wasm' && wasmReady) {
+    eng = wasmEng
+    engMode = 'wasm'
+  } else {
+    eng = await loadJsEngine()
+    engMode = 'js'
+  }
+  updateEngineControl()
+  sync()
+}
 
 const ta = document.getElementById('scss-in')
 const out = document.getElementById('css-out')
@@ -210,12 +274,13 @@ const samples = {
 }
 
 const sync = () => {
+  if (!eng) return
   const src = cm.getValue()
   const prefix = varsPrefix()
   const fed = prefix + '\n' + src
-  let css = lang === 'less' ? compile_less(fed) : compile_scss(fed)
+  let css = lang === 'less' ? eng.compile_less(fed) : eng.compile_scss(fed)
   if (trimChk.checked) css = trimBlankLines(css)
-  if (minifyChk.checked) css = minify_css(css)
+  if (minifyChk.checked) css = eng.minify_css(css)
   out.innerHTML = hl(css || '')
 }
 
@@ -237,4 +302,8 @@ minifyChk.addEventListener('change', sync)
 trimChk.addEventListener('change', sync)
 
 bindVars()
-sync()
+const wasmToggle = document.querySelector('#wasm-toggle')
+wasmToggle?.addEventListener('change', () => {
+  selectEngine(wasmToggle.checked ? 'wasm' : 'js')
+})
+loadEngine().then(sync)
