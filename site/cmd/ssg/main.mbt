@@ -52,6 +52,15 @@ async fn copy_file(src : String, dst : String) -> Unit {
 }
 
 ///| 取路径的父目录（去最后一个 / 之后的部分）
+///| 初始变量 tag（rabbita 静态渲染，避免 JS 空窗；key 锁定、不可删）
+fn vars_tag(name : String, value : String) -> @html.Html {
+  @html.node("div", @html.Attrs::build().class("vars-tag"), [
+    @html.node("input", @html.Attrs::build().class("vars-tag-name").readonly_(true).value(name), @html.nothing),
+    @html.node("input", @html.Attrs::build().class("vars-tag-value").value(value), @html.nothing),
+    @html.node("button", @html.Attrs::build().class("vars-tag-del").disabled(true), [@html.text("×")]),
+  ])
+}
+
 fn dir_of(p : String) -> String {
   let n = p.length()
   let mut i = n - 1
@@ -160,7 +169,12 @@ fn home_page() -> @rabbita.Val[@html.Html] {
                   @html.text(" 去掉首尾空行"),
                 ]),
               ]),
-              @html.node("div", @html.Attrs::build().id("vars"), @html.nothing),
+              @html.node("div", @html.Attrs::build().id("vars"), [
+                vars_tag("red", "#e74c3c"),
+                vars_tag("yellow", "#f5d563"),
+                vars_tag("green", "#2ecc71"),
+                vars_tag("blue", "#3498db"),
+              ]),
             ]),
           ]),
         ]),

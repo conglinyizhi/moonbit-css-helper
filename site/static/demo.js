@@ -173,6 +173,17 @@ function renderVars() {
   })
 }
 
+// 绑定 rabbita 已静态渲染好的初始 tag（首次不做 DOM 重建，避免空窗）
+function bindVars() {
+  document.querySelectorAll('#vars .vars-tag').forEach((tag, idx) => {
+    const n = tag.querySelector('.vars-tag-name')
+    const val = tag.querySelector('.vars-tag-value')
+    fitInput(n)
+    fitInput(val)
+    val.addEventListener('input', () => { vars[idx].value = val.value; fitInput(val); sync() })
+  })
+}
+
 addVarBtn.addEventListener('click', () => {
   vars.push({ name: '', value: '' })
   renderVars()
@@ -225,5 +236,5 @@ updateActive()
 minifyChk.addEventListener('change', sync)
 trimChk.addEventListener('change', sync)
 
-renderVars()
+bindVars()
 sync()
