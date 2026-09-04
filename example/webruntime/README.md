@@ -70,7 +70,19 @@ Firefox / Waterfox 对 JS String Builtins 支持滞后，很可能不默认开�
 MoonBit wasm 的字符串跨边界主线用 **wasm-gc + `use-js-builtin-string`**（JS String Builtins），
 而这恰好是 Firefox / Waterfox 没做的子特性。要走「Firefox 也能跑的纯 wasm」，只能用**普通
 wasm + 手写 memory 胶水**（把 JS string 编码进 wasm memory、传指针、从 memory 解码结果），
-需要 MoonBit 导出 memory + 摸清 String ABI。这条已探明是**可行但要手工**的路径。
+需要 MoonBit 导出 memory + 摸清 String ABI。
+
+### 普通 wasm 的当前探索状态（`wasm/` 子目录）
+
+- ✅ **memory 已导出**：`options(link: {"wasm": {"export-memory-name": "memory"}})` 生效，
+  exports 含 `memory` + `compile_scss` / `compile_less`。
+- ⚠️ **String ABI 未解**：`compile_scss` 返回的是 MoonBit wasm 运行时的**对象引用**
+  （内部句柄），直接读 memory 拿到的是带 GC/header 的对象，不是干净 UTF-8 CSS。要解出
+  结果，得**复刻 MoonBit 的 String 内存布局**（对象头 + len + 字符数据 + 可能的 interning），
+  这需要懂 MoonBit wasm runtime 的字符串表示，**不属于"几行胶水"，是专项工程**。
+
+**结论**：Firefox / Waterfox 上要纯 wasm，先攻克 MoonBit 的 String 内存表示（专项）；
+在攻克前，**Firefox / Waterfox 用 JS backend 版即可全覆盖**（`web.js` + `runtime.js`）。
 
 ## 原理
 

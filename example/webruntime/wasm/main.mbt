@@ -1,0 +1,9 @@
+#export_name("compile_scss")
+pub fn compile_scss(src : String) -> String {
+  try @mb.compile_scss(src) catch { _ => "" }
+}
+
+#export_name("compile_less")
+pub fn compile_less(src : String) -> String {
+  try @mb.compile_less(src) catch { _ => "" }
+}
