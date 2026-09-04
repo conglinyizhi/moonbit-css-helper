@@ -1,0 +1,328 @@
+///| LESS 独立引擎：AST + 解析器
+///
+/// 词法复用 SCSS 的 `@scss.tokenize`（`@var`/`.name`/运算符/括号/字符串都覆盖），
+/// 但解析按 LESS 语义：`@name:` 是变量（而非 at-rule）、`.name(...)` 是类 mixin。
+/// 求值走 `less_eval.mbt`（lazy 变量作用域 / 类 mixin 混入 / 运算），不复用 SCSS 引擎。
+
+///| LESS AST（面向求值）
+pub(all) enum LessNode {
+  /// 规则集：选择器 token + 规则体
+  RuleSet(Array[String], Array[LessNode])
+  /// 声明：属性 + 值 token 序列
+  Decl(String, Array[String])
+  /// 变量定义：`@name : value`（name 不含 @）
+  VarDef(String, Array[String])
+  /// mixin 定义：`.name(@a, @b) {}`（params 含 @ 前缀，如 @w）
+  MixinDef(String, Array[String], Array[LessNode])
+  /// mixin 调用：`.name(args)` / `.name;`
+  MixinCall(String, Array[String])
+  /// 透传 at-rule：`@media (...) {}`
+  AtRule(String, Array[String], Array[LessNode])
+  /// `@import "path"`
+  Import(String)
+  /// 无法解析时原样透传
+  Raw(String)
+} derive(Debug)
+
+///| LESS 解析入口：token 序列 → node 列表
+pub fn parse_less(toks : Array[String]) -> Array[LessNode] {
+  let p = LessParser::new(toks)
+  p.parse_block()
+}
+
+struct LessParser {
+  toks : Array[String]
+  mut pos : Int
+}
+
+fn LessParser::new(toks : Array[String]) -> LessParser {
+  { toks, pos: 0 }
+}
+
+fn LessParser::peek(self : LessParser) -> String? {
+  if self.pos < self.toks.length() {
+    Some(self.toks[self.pos])
+  } else {
+    None
+  }
+}
+
+fn LessParser::advance(self : LessParser) -> String {
+  let t = self.toks[self.pos]
+  self.pos += 1
+  t
+}
+
+///| 解析到块尾（`}` 或 EOF，不消费 `}`）
+fn LessParser::parse_block(self : LessParser) -> Array[LessNode] {
+  let nodes : Array[LessNode] = []
+  while true {
+    match self.peek() {
+      None => break
+      Some("}") => break
+      Some(_) => {
+        match self.parse_one() {
+          Some(node) => nodes.push(node)
+          None => break
+        }
+      }
+    }
+  }
+  nodes
+}
+
+///| 解析一个节点
+fn LessParser::parse_one(self : LessParser) -> LessNode? {
+  match self.peek() {
+    None => None
+    Some("}") => None
+    Some(first) => {
+      if first.length() > 0 && first[0] == '@' {
+        let name = strip_at(first)
+        if is_at_rule_keyword(name) {
+          self.parse_at()
+        } else {
+          Some(self.parse_var())
+        }
+      } else if first.length() > 0 && first[0] == '.' {
+        match self.peek_at(1) {
+          Some("(") => self.parse_mixin()
+          Some(";") => {
+            // `.m;` 分离调用
+            let name = strip_dot(self.advance())
+            self.consume(";")
+            Some(MixinCall(name, []))
+          }
+          _ => self.parse_decl_or_rule()
+        }
+      } else {
+        self.parse_decl_or_rule()
+      }
+    }
+  }
+}
+
+///| 变量定义 `@name : value ;`
+fn LessParser::parse_var(self : LessParser) -> LessNode {
+  let name = strip_at(self.advance())
+  self.consume(":")
+  let value = self.read_head()
+  self.consume(";")
+  VarDef(name, value)
+}
+
+///| at-rule：@media / @import / 透传
+fn LessParser::parse_at(self : LessParser) -> LessNode? {
+  let name = strip_at(self.advance())
+  if name == "import" {
+    let path_tok = self.advance()
+    ignore(self.read_head())
+    self.consume(";")
+    return Some(Import(strip_quotes(path_tok)))
+  }
+  // 读 prelude 到 `{`
+  let prelude = self.read_until_brace()
+  match self.peek() {
+    Some("{") => {
+      self.pos += 1
+      let body = self.parse_block()
+      self.consume("}")
+      Some(AtRule(name, prelude, body))
+    }
+    Some(";") => {
+      self.pos += 1
+      Some(AtRule(name, prelude, []))
+    }
+    _ => Some(AtRule(name, prelude, []))
+  }
+}
+
+///| 类 mixin：`.name(...)` 定义（后接 `{`）或调用
+fn LessParser::parse_mixin(self : LessParser) -> LessNode? {
+  let name = strip_dot(self.advance()) // `.name`
+  self.consume("(")
+  let params = self.read_paren_list()
+  match self.peek() {
+    Some("{") => {
+      self.pos += 1
+      let body = self.parse_block()
+      self.consume("}")
+      Some(MixinDef(name, params, body))
+    }
+    Some(";") => {
+      self.pos += 1
+      Some(MixinCall(name, params))
+    }
+    _ => Some(MixinCall(name, params))
+  }
+}
+
+///| 声明或嵌套规则
+fn LessParser::parse_decl_or_rule(self : LessParser) -> LessNode? {
+  let head = self.read_head()
+  match self.peek() {
+    Some("{") => {
+      self.pos += 1
+      let body = self.parse_block()
+      self.consume("}")
+      Some(RuleSet(head, body))
+    }
+    Some(";") => {
+      self.pos += 1
+      Some(self.make_decl_or_raw(head))
+    }
+    _ => Some(self.make_decl_or_raw(head))
+  }
+}
+
+///| 读到 `{` / `;` / `}` / EOF（`:` 不截断，避免把 `&:hover` 当声明）
+fn LessParser::read_head(self : LessParser) -> Array[String] {
+  let out : Array[String] = []
+  while true {
+    match self.peek() {
+      None => break
+      Some("}") => break
+      Some(";") => break
+      Some("{") => break
+      Some(t) => {
+        out.push(t)
+        self.pos += 1
+      }
+    }
+  }
+  out
+}
+
+///| head 含 `:` 则拆成声明（prop: val），否则 Raw
+fn LessParser::make_decl_or_raw(self : LessParser, head : Array[String]) -> LessNode {
+  let colon = find_colon_in_tokens(head)
+  if colon > 0 {
+    let prop = head[0:colon].join(" ")
+    let val = head[colon + 1:].to_array()
+    Decl(prop, val)
+  } else {
+    Raw(head.join(" "))
+  }
+}
+
+fn find_colon_in_tokens(toks : Array[String]) -> Int {
+  for i in 0 ..< toks.length() {
+    if toks[i] == ":" {
+      return i
+    }
+  }
+  -1
+}
+
+///| 读到 `{` 或 `;` 或块尾（用于 at-rule prelude）
+fn LessParser::read_until_brace(self : LessParser) -> Array[String] {
+  let out : Array[String] = []
+  while true {
+    match self.peek() {
+      None => break
+      Some("}") => break
+      Some("{") => break
+      Some(";") => {
+        self.pos += 1
+        break
+      }
+      Some(t) => {
+        out.push(t)
+        self.pos += 1
+      }
+    }
+  }
+  out
+}
+
+///| 读 mixin 参数/实参列表（括号内），返回各项（`@w`/`10px` 等）
+fn LessParser::read_paren_list(self : LessParser) -> Array[String] {
+  let items : Array[String] = []
+  let mut cur = StringBuilder()
+  let mut depth = 0
+  while true {
+    match self.peek() {
+      None => break
+      Some(")") => {
+        self.pos += 1
+        if depth == 0 {
+          if cur.to_string().trim().length() > 0 {
+            items.push(cur.to_string().trim().to_string())
+          }
+          break
+        } else {
+          cur.write_string(")")
+          depth -= 1
+        }
+      }
+      Some("(") => {
+        self.pos += 1
+        cur.write_string("(")
+        depth += 1
+      }
+      Some(",") | Some(";") => {
+        self.pos += 1
+        if depth == 0 {
+          items.push(cur.to_string().trim().to_string())
+          cur = StringBuilder()
+        } else {
+          cur.write_string(",")
+        }
+      }
+      Some(t) => {
+        cur.write_string(t)
+        self.pos += 1
+        // 项内给 token 之间补空格，保证原样可读
+        if self.peek() is Some(_) && self.toks[self.pos - 1] != "(" {
+          cur.write_string(" ")
+        }
+      }
+    }
+  }
+  items
+}
+
+///| 输出当前 pos 后偏移处的 token
+fn LessParser::peek_at(self : LessParser, off : Int) -> String? {
+  let k = self.pos + off
+  if k < self.toks.length() {
+    Some(self.toks[k])
+  } else {
+    None
+  }
+}
+
+///| 消费一个预期 token；不匹配则不动
+fn LessParser::consume(self : LessParser, tok : String) -> Unit {
+  if self.peek() is Some(t) && t == tok {
+    self.pos += 1
+  }
+}
+
+///| 去掉 `@` 前缀
+fn strip_at(s : String) -> String {
+  if s.length() > 0 && s[0] == '@' {
+    s[1:].to_string()
+  } else {
+    s
+  }
+}
+
+///| 去掉 `.` 前缀
+fn strip_dot(s : String) -> String {
+  if s.length() > 0 && s[0] == '.' {
+    s[1:].to_string()
+  } else {
+    s
+  }
+}
+
+///| 去掉字符串引号
+fn strip_quotes(s : String) -> String {
+  let n = s.length()
+  if n >= 2 && (s[0] == '"' || s[0] == '\'') && s[n - 1] == s[0] {
+    s[1:n - 1].to_string()
+  } else {
+    s
+  }
+}

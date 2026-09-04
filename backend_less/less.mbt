@@ -119,18 +119,13 @@ fn read_paren(source : String, open : Int, n : Int) -> (String, Int) {
   (p.to_string(), k)
 }
 
-///| LESS 引擎：复用 SCSS 引擎编译（转换后）
+///| LESS 引擎：独立解析 + 求值（不复用 SCSS 引擎）
 pub fn less_engine() -> @core.Engine {
   @core.Engine::new(
     name = () => "less",
     supports = (fmt) => fmt is @core.Less,
-    compile = (source) => @scss.to_css(@scss.parse_sheet(@scss.tokenize(less_to_scss(source)))),
-    compile_imports = (source, read) => @scss.compile_with_imports(
-      less_to_scss(source),
-      fn(path : String) -> String raise @core.RabbitaError {
-        less_to_scss(read(path))
-      },
-    ),
+    compile = (source) => eval_less(parse_less(@scss.tokenize(source)), None),
+    compile_imports = (source, read) => eval_less(parse_less(@scss.tokenize(source)), Some(read)),
   )
 }
 
