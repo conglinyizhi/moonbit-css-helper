@@ -139,7 +139,7 @@ fn gen_rule(
   read : ((String) -> String raise @core.RabbitaError)?,
 ) -> String {
   let child_env = new_scope(body, Some(env))
-  let decls = gen_block_decls(body, full, child_env, read)
+  let decls = gen_block_decls(body, child_env, read)
   let lifted = gen_block_lifted(body, full, child_env, read)
   let head = if decls.trim().length() > 0 {
     full + " {\n" + decls + "}\n"
@@ -149,30 +149,59 @@ fn gen_rule(
   head + lifted
 }
 
-///| 当前块的声明（含 mixin 混入的声明）
+///| 当前块的声明（含 mixin 混入）；同名同值去重，保留最后一次出现（对齐 less.js）
 fn gen_block_decls(
   nodes : Array[LessNode],
-  full : String,
   env : Env,
   read : ((String) -> String raise @core.RabbitaError)?,
 ) -> String {
+  let out : Array[(String, String)] = []
+  collect_decls(nodes, env, out)
+  // 保留最后一次出现：从后往前收集，再逆序输出
+  let seen : Array[String] = []
+  let rev : Array[(String, String)] = []
+  let mut k = out.length() - 1
+  while k >= 0 {
+    let (p, v) = out[k]
+    let key = p + "\u0000" + v
+    if contains_key(seen, key) == false {
+      rev.push((p, v))
+      seen.push(key)
+    }
+    k = k - 1
+  }
   let sb = StringBuilder()
+  let mut m = rev.length() - 1
+  while m >= 0 {
+    let (p, v) = rev[m]
+    sb.write_string("  " + p + ": " + v + ";\n")
+    m = m - 1
+  }
+  sb.to_string()
+}
+
+fn collect_decls(nodes : Array[LessNode], env : Env, out : Array[(String, String)]) -> Unit {
   for node in nodes {
     match node {
-      Decl(prop, val) => sb.write_string("  " + prop + ": " + eval_value(val, env) + ";\n")
+      Decl(prop, val) => out.push((prop, eval_value(val, env)))
       MixinCall(name, args) => {
         match lookup_mixin(env, name) {
-          Some((params, body)) => {
-            let penv = bind_params(env, params, args)
-            sb.write_string(gen_block_decls(body, full, penv, read))
-          }
+          Some((params, body)) => collect_decls(body, bind_params(env, params, args), out)
           None => ()
         }
       }
       _ => ()
     }
   }
-  sb.to_string()
+}
+
+fn contains_key(seen : Array[String], key : String) -> Bool {
+  for s in seen {
+    if s == key {
+      return true
+    }
+  }
+  false
 }
 
 ///| 当前块的子规则/at-rule（提升为独立规则）
