@@ -1,0 +1,5 @@
+import {
+  "conglinyizhi/moonbit_css_helper" @mb,
+}
+
+pkgtype(kind: "foreign_library")

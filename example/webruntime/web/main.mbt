@@ -1,0 +1,10 @@
+///| 浏览器导出入口：把库编译为 JS backend ESM，供 `<style lang="scss/less">` 运行时调用
+#export_name("compile_scss")
+pub fn compile_scss(src : String) -> String {
+  try @mb.compile_scss(src) catch { _ => "" }
+}
+
+#export_name("compile_less")
+pub fn compile_less(src : String) -> String {
+  try @mb.compile_less(src) catch { _ => "" }
+}
