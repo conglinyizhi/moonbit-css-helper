@@ -116,8 +116,12 @@ fn node_to_scss(node : Node, indent : Int) -> String {
     Import(path) => sb.write_string(spaces(indent) + "@import \"\{path}\";\n")
     AtRule(name, args, body) => {
       sb.write_string(spaces(indent))
-      sb.write_string("@")
-      sb.write_string(name)
+      if name.length() > 0 && name[0] == '@' {
+        sb.write_string(name)
+      } else {
+        sb.write_string("@")
+        sb.write_string(name)
+      }
       if args.length() > 0 {
         sb.write_string(" ")
         sb.write_string(args.join(" "))

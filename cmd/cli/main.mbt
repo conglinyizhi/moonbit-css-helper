@@ -8,7 +8,7 @@ async fn main {
   match sub {
     "compile" => run_compile()
     "compile-less" => run_compile_less()
-    "format" => run_format()
+    "format" => run_format(args)
     "help" | "-h" | "--help" => print_help()
     _ => {
       println("unknown subcommand: \{sub}\n")
@@ -97,17 +97,58 @@ fn detect_type(src : String) -> String {
   "scss"
 }
 
-///| format：stdin 输入源码，输出规范化排版
-async fn run_format() -> Unit {
+///| format：stdin 输入源码，输出规范化排版；默认自动探测糖类型
+///
+/// flags（可选，偷懒时可全省略）：
+///   --type <scss|sass|less>  显式指定类型
+///   --scss / --sass / --less 快捷指定
+///   --css                   输出编译后的 css（而非规范化源码）
+async fn run_format(args : Array[String]) -> Unit {
+  let mut out_css = false
+  let mut forced_type : String? = None
+  let mut i = 2
+  while i < args.length() {
+    match args[i] {
+      "--css" => out_css = true
+      "--type" => {
+        if i + 1 < args.length() {
+          forced_type = Some(args[i + 1])
+          i += 1
+        }
+      }
+      "--scss" => forced_type = Some("scss")
+      "--sass" => forced_type = Some("sass")
+      "--less" => forced_type = Some("less")
+      "-h" | "--help" => {
+        print_format_help()
+        return
+      }
+      _ => ()
+    }
+    i += 1
+  }
   let src = try read_stdin_all() catch {
     e => {
       println("ERR: read \{e}")
       return
     }
   }
-  let kind = detect_type(src)
-  let formatted : String =
-    if kind == "sass" {
+  // 类型：显式指定 > 自动探测（偷懒默认）
+  let kind = match forced_type {
+    Some(t) => t
+    None => detect_type(src)
+  }
+  if out_css {
+    // 输出编译后的 css（所有糖都归一）
+    let css : String = if kind == "less" {
+      try @mb.compile_less(src) catch { e => "/* 编译失败: \{repr(e)} */" }
+    } else {
+      try @mb.compile_scss(src) catch { e => "/* 编译失败: \{repr(e)} */" }
+    }
+    println(css.trim())
+  } else {
+    // 输出规范化源码
+    let formatted : String = if kind == "sass" {
       @scss.format_scss(@scss.sass_to_scss(src))
     } else if kind == "less" {
       let scss_src = try @less.less_to_scss(src) catch {
@@ -117,5 +158,14 @@ async fn run_format() -> Unit {
     } else {
       @scss.format_scss(src)
     }
-  println(formatted.trim())
+    println(formatted.trim())
+  }
+}
+
+fn print_format_help() -> Unit {
+  println("format [flags]")
+  println("  输入：stdin 源码；默认自动探测糖类型，输出规范化 scss")
+  println("  --type <scss|sass|less>  显式指定类型")
+  println("  --scss / --sass / --less 快捷指定")
+  println("  --css                   输出编译后的 css")
 }
