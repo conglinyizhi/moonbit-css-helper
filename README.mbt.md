@@ -182,6 +182,18 @@ let css = @moonbit_css_helper.compile_many(
 
 静态资源：moonback 用 `@static.new(root="public")` 中间件服务 `public/` 下的 `site.css`；rabbit 页面里用 `<link rel="stylesheet" href="/site.css">`。集成示范见 `rabbit-css-integration`（三格式装载 + rabbit SSR 渲染注入 + moonback `@static` 后端闭环）。
 
+### SSG 静态站点（`site/`，GitHub Pages 免后端）
+
+`site/` 是**独立演示站项目**（rabbit SSG + 自研 tailwind-like，`site/out` 产物）：
+
+```bash
+cd site && moon run cmd/ssg   # 读 styles/tailwind.scss → 本库编译出 out/tailwind.css；rabbit 渲染 out/index.html
+```
+
+- 组件 `@rabbita.new(fn(){ home_page() })`（闭包捕获）+ `.render(url, timeout)` 产完整 HTML 字符串（含 `<!DOCTYPE>`），直接写盘（SSG = MPA 落地）。
+- `site/cmd/ssg` 里 `@fs.read_file` 返回 `&@io.Data`（转 String 用 `data.text()`）；read_file 是 async，helper 用 `async fn`；`@fs.write_file(path, String)` 直接传 String 值；`@fs.mkdir(recursive=true)` 确保目录。
+- `site/moon.work` 挂父库用 `..`（嵌套项目）；`moon add <module>@<ver>` 一次一个。
+
 ### 关键坑（来自 `clyzhi-moonwell-spring` skill 的一手经验）
 
 - **`#internal(experimental)`**：rabbita 大量 API 标注 experimental，入口加 `#warnings(...)` 压制。
