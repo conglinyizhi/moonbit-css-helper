@@ -11,6 +11,11 @@ pub fn generate_types(source : String) -> String {
 
 fn gen_type_wrapper(classes : Array[String]) -> String {
   let sb = StringBuilder()
+  sb.write_string("pub struct TW { classes : Array[String] }\n\n")
+  // 顶层工厂 @tw.tw()（避免 impl 关联函数语法坑），方法和 class 用 self 顶层 fn
+  sb.write_string("pub fn tw() -> TW { { classes: [] } }\n\n")
+  sb.write_string("pub fn add(self : TW, c : String) -> TW {\n  self.classes.push(c)\n  self\n}\n\n")
+  sb.write_string("pub fn class(self : TW) -> String { self.classes.join(\" \") }\n\n")
   let seen : Array[String] = []
   for c in classes {
     let f = class_to_fn(c)
@@ -18,9 +23,9 @@ fn gen_type_wrapper(classes : Array[String]) -> String {
       seen.push(f)
       sb.write_string("pub fn ")
       sb.write_string(f)
-      sb.write_string("() -> String { \"")
+      sb.write_string("(self : TW) -> TW { self.add(\"")
       sb.write_string(c)
-      sb.write_string("\" }\n")
+      sb.write_string("\") }\n")
     }
   }
   sb.to_string()

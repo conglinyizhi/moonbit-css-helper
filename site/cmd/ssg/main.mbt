@@ -42,18 +42,18 @@ fn home_page() -> @rabbita.Val[@html.Html] {
         ),
       ]),
       @html.node("body", @html.Attrs::build(), [
-        @html.node("h1", @html.Attrs::build().class(@tw.flex()), [
-          @html.text("moonbit_css_helper 智能提示 demo"),
+        @html.node("h1", @html.Attrs::build().class(@tw.tw().flex().class()), [
+          @html.text("moonbit_css_helper 链式 tailwind demo"),
         ]),
-        @html.node("p", @html.Attrs::build().class(@tw.mt_4()), [
-          @html.text("这行用了自研 tailwind 的 @tw.mt_4()："),
+        @html.node("p", @html.Attrs::build().class(@tw.tw().mt_4().class()), [
+          @html.text("这行用了 @tw.tw().mt_4().class()（链式，自动拼空格）："),
         ]),
-        @html.node("p", @html.Attrs::build().class(@tw.text_red()), [
-          @html.text("这行用了 @tw.text_red()。"),
+        @html.node("p", @html.Attrs::build().class(@tw.tw().text_red().class()), [
+          @html.text("这行用了 @tw.tw().text_red().class()。"),
         ]),
-        @html.node("div", @html.Attrs::build().class(@tw.flex_row() + " " + @tw.gap_4()), [
-          @html.node("p", @html.Attrs::build().class(@tw.bg_blue() + " " + @tw.rounded()), [
-            @html.text("@tw.flex_row() / @tw.bg_blue() / @tw.rounded()"),
+        @html.node("div", @html.Attrs::build().class(@tw.tw().flex_row().gap_4().class()), [
+          @html.node("p", @html.Attrs::build().class(@tw.tw().bg_blue().rounded().class()), [
+            @html.text("@tw.tw().bg_blue().rounded().class()"),
           ]),
         ]),
       ]),

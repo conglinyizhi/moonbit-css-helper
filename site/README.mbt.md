@@ -40,25 +40,28 @@ write_file("app/tw.mbt", types)
 cat styles/tailwind.scss | moon run cmd/cli -- gen-types > tw/tw.mbt
 ```
 
-生成结果（`tw/tw.mbt`，94 个方法）：
+生成结果是**链式 builder**（`site/tw/tw.mbt`，94 个方法 + `TW` struct）：
 
 ```moonbit
-pub fn m_4() -> String { "m-4" }
-pub fn text_red() -> String { "text-red" }
-pub fn flex() -> String { "flex" }
+pub struct TW { classes : Array[String] }
+pub fn tw() -> TW { { classes: [] } }              // 工厂
+pub fn add(self : TW, c : String) -> TW { ... }    // 追加
+pub fn class(self : TW) -> String { self.classes.join(" ") }  // 拼空格
+pub fn m_4(self : TW) -> TW { self.add("m-4") }
+pub fn text_red(self : TW) -> TW { self.add("text-red") }
 ```
 
-## 智能提示 + 编译校验
+## 智能提示 + 编译校验（链式，自动拼空格）
 
 ```moonbit
 @html.node("h1",
-  @html.Attrs::build().class(@tw.mt_4() + " " + @tw.text_red()),
+  @html.Attrs::build().class(@tw.tw().mt_4().text_red().class()),
   [@html.text("hi")])
 ```
 
-- **编辑器 LSP**（VS Code MoonBit 插件）：`@tw.` 自动列出你样式里**有**的 class——智能提示。
-- **编译校验**：`@tw.wrong` / 拼错 class → 编译失败，不会产出无效 class。
-- 多个 class：`@tw.flex_row() + " " + @tw.gap_4()`；也可升级成链式 builder（`@tw.TW::new().width("50px").height("100px")`）。
+- **编辑器 LSP**（VS Code MoonBit 插件）：`@tw.tw().` 后自动列出可用的 utility（`mt_4`/`text_red`/…）——智能提示。
+- **编译校验**：`@tw.wrong` / 拼错 class → 编译失败。
+- **链式自动拼空格**：`@tw.tw().flex_row().gap_4().class()` → `"flex-row gap-4"`，不用手动 `+ " " +`。
 
 ## 构建
 
