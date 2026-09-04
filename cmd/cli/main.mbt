@@ -9,6 +9,7 @@ async fn main {
     "compile" => run_compile()
     "compile-less" => run_compile_less()
     "format" => run_format(args)
+    "diagnose" => run_diagnose()
     "help" | "-h" | "--help" => print_help()
     _ => {
       println("unknown subcommand: \{sub}\n")
@@ -26,6 +27,7 @@ fn print_help() -> Unit {
   println("  compile        批量编译 SCSS（stdin 以 NUL 分隔输入，NUL 分隔输出；差分 harness 协议）")
   println("  compile-less   批量编译 LESS（同上）")
   println("  format         格式化源码（stdin 输入，输出规范排版的 scss）")
+  println("  diagnose       检测重复属性（stdin 输入，打印警告；无则提示）")
   println("  help           显示本帮助")
 }
 
@@ -168,4 +170,29 @@ fn print_format_help() -> Unit {
   println("  --type <scss|sass|less>  显式指定类型")
   println("  --scss / --sass / --less 快捷指定")
   println("  --css                   输出编译后的 css")
+}
+
+///| 检测重复属性（同名同值），打印警告；sass 先转 scss
+async fn run_diagnose() -> Unit {
+  let src = try read_stdin_all() catch {
+    e => {
+      println("ERR: read \{e}")
+      return
+    }
+  }
+  let kind = detect_type(src)
+  let warns = if kind == "sass" {
+    @scss.diagnose_scss(@scss.sass_to_scss(src))
+  } else if kind == "less" {
+    @less.diagnose_less(src)
+  } else {
+    @scss.diagnose_scss(src)
+  }
+  if warns.length() == 0 {
+    println("(no duplicate property warnings)")
+  } else {
+    for w in warns {
+      println(w)
+    }
+  }
 }
