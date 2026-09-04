@@ -1,0 +1,131 @@
+// 紫色主题的 landing 样式（用我们的库编译这个 scss -> site.css）
+$bg: #17131f;
+$title: #b794f6;
+$sub: #e6e1f0;
+$text: #cbc4d8;
+$code-bg: #241e33;
+$code-head: #2e2745;
+$code-border: #3d355a;
+$cta-bg: #7c3aed;
+$cta-text: #ffffff;
+$note: #6a6570;
+
+.site-dark {
+  background: $bg;
+  color: $text;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 2rem;
+  border-bottom: 1px solid #2e2745;
+}
+.site-logo { color: $title; font-weight: 800; font-size: 1.15rem; text-decoration: none; }
+.site-nav { display: none; }
+.site-nav a { color: $text; text-decoration: none; }
+.site-nav a:hover { color: #fff; }
+
+.site-title {
+  color: $title;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  text-align: center;
+  margin-top: 4rem;
+  margin-bottom: 0.5rem;
+}
+.site-sub { text-align: center; font-size: clamp(1.1rem, 2.5vw, 1.5rem); color: $sub; }
+
+.site-cta {
+  display: block;
+  width: fit-content;
+  margin: 1.8rem auto;
+  background: $cta-bg;
+  color: $cta-text;
+  padding: 0.7rem 1.4rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.site-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  max-width: 960px;
+  margin: 2rem auto;
+  border: 1px solid $code-border;
+  border-radius: 0.35rem;
+  overflow: hidden;
+}
+.editor-col { display: flex; flex-direction: column; background: $code-bg; height: 340px; }
+.editor-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: $code-head; color: $sub; padding: 0.55rem 1rem; font-size: 0.9rem; border-bottom: 1px solid $code-border; min-height: 2.4rem; }
+.editor-head-left { display: flex; align-items: center; gap: 0.55rem; }
+.editor-head button { background: $cta-bg; color: #fff; border: 0; border-radius: 0.25rem; padding: 0.15rem 0.5rem; font-size: 0.8rem; cursor: pointer; }
+.editor-head button:hover { filter: brightness(1.1); }
+.editor-head select { background: $code-bg; color: $sub; border: 1px solid $code-border; border-radius: 0.25rem; padding: 0.15rem 0.4rem; font-size: 0.8rem; }
+.editor-col textarea, .editor-col pre {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  background: $code-bg;
+  color: #e8e5e1;
+  border: 0;
+  margin: 0;
+  padding: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  min-height: 0;
+}
+.editor-col textarea { resize: vertical; outline: none; }
+
+.site-footer { text-align: center; padding: 2.2rem 2rem; color: $text; font-size: 0.98rem; }
+.site-footer a { color: $title; text-decoration: none; font-weight: 600; }
+
+/* ---- 代码高亮 token（紫色系）---- */
+.tok-sel { color: #c084fc; }
+.tok-prop { color: #7dd3fc; }
+.tok-val { color: #a5f3a5; }
+.tok-var { color: #f0abfc; }
+.tok-num { color: #c4b5fd; }
+.tok-com { color: #6a6570; font-style: italic; }
+.tok-str { color: #a5f3a5; }
+
+/* CTA 下方的灰色小字（玩梗，不显眼但看得清） */
+.site-note { font-size: 0.8rem; color: $note; text-align: center; margin-top: 0.2rem; }
+.site-note code { color: #8b8494; }
+
+/* 输入侧 overlay：textarea 透明文字 + mirror 高亮，滚动同步 */
+.editor-input { position: relative; flex: 1; min-height: 0; }
+.editor-mirror {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: #e8e5e1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+.editor-input textarea {
+  position: relative;
+  background: transparent;
+  color: transparent;
+  caret-color: #f5d563;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.editor-input textarea::-webkit-scrollbar {
+  display: none;
+}

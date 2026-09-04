@@ -1,4 +1,4 @@
-// 我们自己的 minimal tailwind-like CSS（用 moonbit_css_helper 的 SCSS 写）
+// 我们自己的 minimal tailwind-like CSS（用 precss 的 SCSS 写）
 // 变量 + @each 生成 utility 类。够站内用即可。
 // 注意：@each 遍历变量时，list 用「空格分隔键值 + 逗号分隔项」，不要外层括号
 //（括号会被当作裸括号吸收成单个值）。

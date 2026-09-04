@@ -1,7 +1,7 @@
-# moonbit_css_helper 范例展示站（`site/`）
+# precss 范例展示站（`site/`）
 
 用 **rabbita（SSR）** + **自研 tailwind-like（我们的库写）** + **`@css.generate_types`（类型化 wrapper）** 搭建的演示站。展示：
-- 用 `moonbit_css_helper` 编译 SCSS（自研 tailwind-like）
+- 用 `precss` 编译 SCSS（自研 tailwind-like）
 - 用 `@css.generate_types` 从**你自己的样式源**生成**类型化 API**（编辑器智能提示 + 编译校验）
 - 用 rabbita 做 SSR 渲染成静态 HTML（GitHub Pages 免后端）
 
@@ -76,4 +76,4 @@ cd site && moon run cmd/ssg
 
 - `moonbit-community/rabbita`（Web UI / SSR）
 - `moonbitlang/async`（async / fs）
-- `conglinyizhi/moonbit_css_helper`（库：编译 SCSS + `generate_types`，经 `moon.work` 本地挂载）
+- `conglinyizhi/precss`（库：编译 SCSS + `generate_types`，经 `moon.work` 本地挂载）
