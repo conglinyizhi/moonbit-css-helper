@@ -1,0 +1,12 @@
+import {
+  "moonbit-community/rabbita" @rabbita,
+  "moonbit-community/rabbita/html" @html,
+  "conglinyizhi/moonbit_css_helper" @css,
+  "conglinyizhi/moonbit_css_helper/core" @core,
+  "moonbitlang/async",
+  "moonbitlang/async/fs" @fs,
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")

@@ -7,3 +7,6 @@ target
 # vendored sass-spec (差分测试用例源，不入库)
 test/sass-spec/
 node_modules/
+
+# SSG 产物
+site/out/
