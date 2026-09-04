@@ -76,13 +76,23 @@ wasm + 手写 memory 胶水**（把 JS string 编码进 wasm memory、传指针�
 
 - ✅ **memory 已导出**：`options(link: {"wasm": {"export-memory-name": "memory"}})` 生效，
   exports 含 `memory` + `compile_scss` / `compile_less`。
-- ⚠️ **String ABI 未解**：`compile_scss` 返回的是 MoonBit wasm 运行时的**对象引用**
-  （内部句柄），直接读 memory 拿到的是带 GC/header 的对象，不是干净 UTF-8 CSS。要解出
-  结果，得**复刻 MoonBit 的 String 内存布局**（对象头 + len + 字符数据 + 可能的 interning），
-  这需要懂 MoonBit wasm runtime 的字符串表示，**不属于"几行胶水"，是专项工程**。
+- ✅ **wasm String ABI 已确认**：`compile_scss: (i32) -> (i32)`（单指针，非 ptr/len 双参）。
+- ✅ **String 是 UTF-16**（`moonbit.h`: `typedef uint16_t *moonbit_string_t`，
+  `moonbit_make_string(size, uint16_t value)`）——不是 UTF-8。
+- ✅ **对象 header 前置**（native：`Moonbit_object_header(obj) = (obj)-1`，rc + meta）。
+- ⚠️ **未解（专项，需读 moonbit-compiler 的 wasm 后端）**：wasm 线性内存里 String 对象的
+  **确切字段布局**（header 大小/字段）、对象分配区位置、data 是否紧接 header。
+  之前的 UTF-8 + `[len][data]` 构造全部返回空串引用（`11608`），因为 MoonBit String 是
+  UTF-16 + header 前置。要解码得**仿照 MoonBit 对象布局构造 String + 解析返回值**（源码级逆向）。
 
-**结论**：Firefox / Waterfox 上要纯 wasm，先攻克 MoonBit 的 String 内存表示（专项）；
+**结论**：Firefox / Waterfox 上要纯 wasm，先攻克 MoonBit wasm 的 String 对象布局（源码级专项）；
 在攻克前，**Firefox / Waterfox 用 JS backend 版即可全覆盖**（`web.js` + `runtime.js`）。
+
+### 下一个源码点（若要继续逆）
+
+- `moonbit-compiler` 的 **wasm 后端**（String 对象的生成/字段布局）。
+- MoonBit **wasm runtime**（对象分配器在 wasm 线性内存的落位）。
+- `moonbit.h` 的 `moonbit_make_string` / `moonbit_object`（native 参考，UTF-16 + header 前置）。
 
 ## 原理
 
