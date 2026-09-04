@@ -1,0 +1,76 @@
+# moonbit_css_helper 范例展示站（`site/`）
+
+用 **rabbita（SSR）** + **自研 tailwind-like（我们的库写）** + **`@css.generate_types`（类型化 wrapper）** 搭建的演示站。展示：
+- 用 `moonbit_css_helper` 编译 SCSS（自研 tailwind-like）
+- 用 `@css.generate_types` 从**你自己的样式源**生成**类型化 API**（编辑器智能提示 + 编译校验）
+- 用 rabbita 做 SSR 渲染成静态 HTML（GitHub Pages 免后端）
+
+## 目录
+
+```
+site/
+├── styles/tailwind.scss   # 自研 minimal tailwind-like（@each 生成 utility）
+├── tw/tw.mbt              # ★ 由 gen-types 生成的类型化 wrapper（每个 class 一个 pub fn）
+├── cmd/ssg/               # SSG：编译 tailwind → out/tailwind.css；rabbit 渲染 out/index.html
+│   └── main.mbt           #   组件里用 @tw.flex() / @tw.mt_4() …
+└── out/                   # 构建产物（gitignore）
+```
+
+## 核心：`@css.generate_types`（库函数）
+
+让"用户写了什么 class，就提示什么"的关键。
+
+```mbt
+///| 从样式源生成类型化 wrapper（每个 class 一个 pub fn）
+///| 自动识别格式 → 编译成 css（展开 @each/插值成字面 .m-0 等）→ 提取全部 class
+///| → 生成 `pub fn xxx() -> String { "xxx" }`
+pub fn generate_types(source : String) -> String
+```
+
+### 第三方用法（在 build / SSG 里调用，写盘成 `.mbt`）
+
+```mbt
+let types = @css.generate_types(read_text("styles/tailwind.scss"))
+write_file("app/tw.mbt", types)
+```
+
+### 或命令行（site 里这么生成的）
+
+```bash
+cat styles/tailwind.scss | moon run cmd/cli -- gen-types > tw/tw.mbt
+```
+
+生成结果（`tw/tw.mbt`，94 个方法）：
+
+```moonbit
+pub fn m_4() -> String { "m-4" }
+pub fn text_red() -> String { "text-red" }
+pub fn flex() -> String { "flex" }
+```
+
+## 智能提示 + 编译校验
+
+```moonbit
+@html.node("h1",
+  @html.Attrs::build().class(@tw.mt_4() + " " + @tw.text_red()),
+  [@html.text("hi")])
+```
+
+- **编辑器 LSP**（VS Code MoonBit 插件）：`@tw.` 自动列出你样式里**有**的 class——智能提示。
+- **编译校验**：`@tw.wrong` / 拼错 class → 编译失败，不会产出无效 class。
+- 多个 class：`@tw.flex_row() + " " + @tw.gap_4()`；也可升级成链式 builder（`@tw.TW::new().width("50px").height("100px")`）。
+
+## 构建
+
+```bash
+cd site && moon run cmd/ssg
+# 产出 out/index.html（rabbit SSR 完整 HTML）+ out/tailwind.css（本库编译）
+```
+
+> `tw/tw.mbt` 是生成产物；改 `styles/tailwind.scss` 后用 `gen-types` 重新生成即可。
+
+## 依赖
+
+- `moonbit-community/rabbita`（Web UI / SSR）
+- `moonbitlang/async`（async / fs）
+- `conglinyizhi/moonbit_css_helper`（库：编译 SCSS + `generate_types`，经 `moon.work` 本地挂载）

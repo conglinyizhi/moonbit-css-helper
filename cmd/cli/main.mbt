@@ -185,57 +185,9 @@ async fn run_gen_types() -> Unit {
       return
     }
   }
-  let kind = detect_type(src)
-  // 先编译成 css（展开 @each/插值成字面 .m-0 等），再从 css 提取全部 class
-  let css = if kind == "less" {
-    try @mb.compile_less(src) catch { _ => "" }
-  } else {
-    try @mb.compile_scss(src) catch { _ => "" }
-  }
-  let classes = @scss.extract_classes_scss(css)
-  println(gen_type_wrapper(classes))
+  println(@mb.generate_types(src))
 }
 
-///| 把 class 列表生成成 MoonBit 类型化 wrapper（每个 class 一个 pub fn）
-fn gen_type_wrapper(classes : Array[String]) -> String {
-  let sb = StringBuilder()
-  let seen : Array[String] = []
-  for c in classes {
-    let f = class_to_fn(c)
-    if contains_str(seen, f) == false {
-      seen.push(f)
-      sb.write_string("pub fn ")
-      sb.write_string(f)
-      sb.write_string("() -> String { \"")
-      sb.write_string(c)
-      sb.write_string("\" }\n")
-    }
-  }
-  sb.to_string()
-}
-
-///| class 名转合法 MoonBit 函数标识符：`text-red-500` -> `text_red_500`
-fn class_to_fn(s : String) -> String {
-  let sb = StringBuilder()
-  for ch in s {
-    let is_id = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_'
-    if is_id {
-      sb.write_string(ch.to_string())
-    } else {
-      sb.write_string("_")
-    }
-  }
-  sb.to_string()
-}
-
-fn contains_str(xs : Array[String], x : String) -> Bool {
-  for y in xs {
-    if y == x {
-      return true
-    }
-  }
-  false
-}
 
 ///| 检测重复属性（同名同值），打印警告；sass 先转 scss
 async fn run_diagnose() -> Unit {
