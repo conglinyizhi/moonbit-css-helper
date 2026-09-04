@@ -1,7 +1,7 @@
 # conglinyizhi/moonbit-css-helper
 
-可插拔的 CSS 预处理器编译门面：一个函数把 **SCSS / LESS / CSS** 源码（或文件）编译成 CSS。
-核心只做「识别格式 → 路由到后端引擎 → 统一错误」，引擎可插拔、输入可单可多、文件读取由调用方注入（核心零 IO 耦合）。
+可插拔的 CSS 预处理器编译门面：一个函数把 **SCSS / SASS / LESS / CSS** 源码（或文件）编译成 CSS。
+核心只做「识别格式 → 路由到后端引擎 → 统一错误」，引擎可插拔、输入可单可多、文件读取由调用方注入（核心零 IO 耦合）。SCSS / SASS / LESS 各自有**独立引擎**，随库附带**单一 CLI 可执行**（compile / format / diagnose 等 subcommand）。
 
 > 对外名 `moonbit-css-helper`；**import 路径**用下划线 `conglinyizhi/moonbit_css_helper`
 > （MoonBit 包名含连字符会让 `_test.mbt`/`README` 的 auto-import alias 失效，故标识收成下划线）。
@@ -30,13 +30,6 @@ test {
 
 ```mbt check
 test {
-  // 显式指定为 CSS（透传）
-  inspect(@moonbit_css_helper.compile_css("body { color: red; }"), content="body { color: red; }")
-}
-```
-
-```mbt check
-test {
   // SCSS 变量 + 嵌套
   inspect(
     @moonbit_css_helper.compile_scss("$gap: 8px; a { margin: $gap; b { padding: $gap; } }"),
@@ -49,6 +42,27 @@ test {
     #|
     ),
   )
+}
+```
+
+```mbt check
+test {
+  // LESS：变量 + 类 mixin（含参数默认值）
+  inspect(
+    @moonbit_css_helper.compile_less(".pad(@p: 8px) { padding: @p; }\n.x { .pad(); }"),
+    content=(#|.x {
+    #|  padding: 8px;
+    #|}
+    #|
+    ),
+  )
+}
+```
+
+```mbt check
+test {
+  // 显式指定为 CSS（透传）
+  inspect(@moonbit_css_helper.compile_css("body { color: red; }"), content="body { color: red; }")
 }
 ```
 
@@ -91,12 +105,57 @@ test {
 - `compile_file(path, read)` — 编译单文件（read 注入）
 - `compile_many(inputs, read)` — 编译多个输入（`File`/`Source` 混用），逐个带 `@import` 内联后拼接
 
-统一错误 `RabbitaError`（`NoEngine` / `EngineFailed`），所有后端引擎错误都会映射到它。多文件 `@import` 内联在 AST 层递归展开（含嵌套规则/控制流体），调用方 `read` 负责路径解析；循环 import 会被去重。
+统一错误 `RabbitaError`（`NoEngine` / `EngineFailed` / `UnsupportedSyntax`），所有后端引擎错误都会映射到它。多文件 `@import` 内联在 AST 层递归展开（含嵌套规则/控制流体），调用方 `read` 负责路径解析；循环 import 会被去重。
 
-## 引擎（可插拔）
+## 引擎（各自独立，可插拔）
 
-- `backend_css` — CSS 透传
-- `backend_scss` — SCSS 子集（变量 + 作用域 `!default/!global`、嵌套、`&`、mixin 含默认/可变参数与 `@content`、`@if/@else if/@while/@for/@each`(多变量)、比较/逻辑运算、`+` 字符串连接、裸括号吸收、选择器/值插值、`@import` 内联、`@media` 透传、`@warn/@debug/@error` 忽略）
+- **`backend_scss`** — SCSS / **SASS（缩进语法）** 独立引擎：变量+作用域（`!default/!global`）、嵌套、`&`、mixin（默认/变参/`@content`）、`@if/@else if/@while/@for/@each`(多变量)、比较/逻辑运算、`+` 字符串连接、裸括号吸收、选择器/值插值、`@import` 内联、`@media` 透传、`@warn/@debug/@error` 忽略。SASS 缩进语法经 `sass_to_scss` 子集转换后复用同引擎。
+- **`backend_less`** — **独立 LESS 引擎**（不复用 SCSS 引擎）：变量 **lazy 作用域**（最后定义优先、可用后定义）、嵌套 `&`、类 mixin（`.name()` 定义 / 调用 / 分离 `.name;` / 参数默认值 / `;` 分隔参数 / **类混入**）、基础运算、`@media` 透传、`@import` 内联、**同名同值重复声明去重**（保留最后一次出现，对齐 less.js）。
+- **`backend_css`** — CSS 透传。
+
+> less 曾用「转换级适配」（`less_to_scss` 转成 scss 再复用 SCSS 引擎），但 less 与 scss 语义独立（lazy 作用域 / 类 mixin / 去重），转换级存在 82% 天花板（深层嵌套/变量作用域必然失配），因此拆为独立引擎。
+
+## 命令行工具（单一可执行 `cmd/cli`）
+
+库独立交付一个 CLI，**stdin 管道友好**：
+
+```bash
+moon run cmd/cli -- help             # 用法
+moon run cmd/cli -- compile          # 批量编译 SCSS（stdin 以 NUL 分隔输入/输出，差分 harness 协议）
+moon run cmd/cli -- compile-less     # 批量编译 LESS
+moon run cmd/cli -- format           # 源码格式化（自动探测糖类型；可 --type/--css）
+moon run cmd/cli -- diagnose         # 重复属性检查（自动探测糖类型）
+
+cat style.scss | moon run cmd/cli -- compile
+echo 'a{color:red;font:bold}' | moon run cmd/cli -- format
+```
+
+- **format**：minified → 规范 2 空格缩进源码；`--type <scss|sass|less>` / `--scss/--sass/--less` 强制类型（测探歧义时用）；`--css` 输出编译后 css。less 因无独立源码级 AST，暂转等价 scss 输出。
+- **diagnose**：检测同一规则内「同名同值」重复声明（`#.box: duplicate property "width: 16%"`）——LESS 会去重同类重复（保留最后一次），scss 保留但属无意义重复；用于提示用户手写可能预期不符。
+- 管道**无扩展名**，`format`/`diagnose` 靠内容自动探测（`$`→scss、`@`→less、缩进→sass）；含 `@media` 又无 `$` 的 scss 会被误判 less，用 `--type scss` 纠正。
+
+## 性能基准（随机结构压测）
+
+`example/perf/bench.mjs`：从**同一棵随机规则树**发射 scss / sass(缩进) / less 三种等价源码，对比 `moonbit cmd/cli` vs 官方核心（dart-sass / less.js）的编译速度，并**逐份做正确性校验**（归一化比对双方产物，不一致的份排除）。
+
+```bash
+node example/perf/bench.mjs [份数] [嵌套深度] [seed]     # 默认 40 4 1
+```
+
+首跑（N=200, depth=4, seed=1）：scss ≈4.7x、sass ≈2.9x、less ≈1.4x（moonbit 更快），三格式均 **200/200 一致**。
+
+## 差分测试（质量背书）
+
+- **scss / sass**：dart-sass oracle（`scripts/diff.mjs`），用例来自 `test/cases` + 上游 `sass-spec`。
+- **less**：less.js oracle（`scripts/less_diff.mjs`），用例来自 `test/less_cases`。
+
+```bash
+node scripts/diff.mjs                            # scss/sass 自带 cases
+node scripts/diff.mjs test/sass-spec/spec/variables
+node scripts/less_diff.mjs                       # less 自带 cases
+```
+
+差分报告见 `test/spec-gap.md`（通过率、已支持特性、归档的 deep-water）。
 
 ## Rabbita 全栈嵌合指南
 
@@ -108,7 +167,6 @@ test {
 
 ```mbt
 // 在 rabbit 项目（后端 cmd/server 或独立构建工具）里
-#warnings("-alert_experimental")   // rabbits 大量 API 带 #internal(experimental)
 let read = fn(p : String) -> String raise @core.RabbitaError {
   // 从构建期 scss 源码 map 读，或从文件系统读（读文件用 @fs，见下方坑）
   scss_sources.get(p) or ""
@@ -119,17 +177,16 @@ let css = @moonbit_css_helper.compile_many(
    @core.Input::Source("$z: 10; .top { z-index: $z; }")],
   read,
 )
-// 把 css 写进 public/site.css，或作为 string 交给 moonback
 ```
 
-静态资源：moonback 用 `@static.new(root="public")` 中间件服务 `public/` 下的 `site.css`；rabbit 页面里用 `<link rel="stylesheet" href="/site.css">`。
+静态资源：moonback 用 `@static.new(root="public")` 中间件服务 `public/` 下的 `site.css`；rabbit 页面里用 `<link rel="stylesheet" href="/site.css">`。集成示范见 `rabbit-css-integration`（三格式装载 + rabbit SSR 渲染注入 + moonback `@static` 后端闭环）。
 
 ### 关键坑（来自 `clyzhi-moonwell-spring` skill 的一手经验）
 
-- **`#internal(experimental)`**：rabbita 大量 API（`App::render`/`hydrate` 等）标注 experimental，入口加 `#warnings("-alert_experimental")` 压制，别因为它 experimental 就绕开——它是当前 full-stack SSR 的必要上游。
+- **`#internal(experimental)`**：rabbita 大量 API 标注 experimental，入口加 `#warnings(...)` 压制。
 - **native target**：`moon new` 默认 `preferred_target="wasm"`；rabbit 后端/服务端要 `preferred_target="native"` + 依赖 `moonbitlang/async`。
-- **core 无文件 IO**：读文件用 `moonbitlang/async/fs`（`@fs.read_file`）。但 **async trait impl 未稳定**——同步 trait 方法体里调 `@fs` 会被静默丢弃。若你的 `read` 用在同步 trait/构建脚本里，先异步读完再喂给 `compile_many`，或分开处理。
-- **`MOON_CC`**：native build 需 C 驱动，工具链可能找 `/usr/bin/lib.exe`——`MOON_CC=gcc moon build --target native`。
+- **core 无文件 IO**：读文件用 `moonbitlang/async/fs`（`@fs.read_file`），但 async trait impl 未稳定——同步 trait 体里调 `@fs` 会被静默丢弃。
+- **`MOON_CC`**：native build 需 C 驱动，`MOON_CC=clang MOON_AR=ar MOON_LD=clang moon build --target native`。
 - **代理坑**：本地代理会让 `moon`/请求超时——`--noproxy '*'`。
 - **static 中间件路径**：`hackwaly/moonback/middlewares/unstable_static`（习惯别名 `@static`）。
 - **SSR 无 on_mount**：首屏数据必须在服务端预取后经 input 注入（闭包捕获）；`@rabbita.new(component : () -> Val[Html])` 无参。
@@ -138,25 +195,12 @@ let css = @moonbit_css_helper.compile_many(
 
 本项目与 rabbit 全栈都属于 **MoonBit 官方技能未覆盖** 的生态。动手前先读：
 
-- **`~/.pi/agent/skills/external/clyzhi-moonwell-spring/references/rabbita-fullstack.md`** — rabbit + moonback 全栈 SSR 的 API 速查与八大失败经验（SSR 无 on_mount、MPA 回退、`@html.Attrs::inner_html` 注入 RawHtml、`@html.nothing`、组件签名 `(input) -> Val[Html]`、`create_pure_state` 等）。
-- **同目录 `patches.md`** — 补丁 20（服务端 native/默认 wasm 陷阱）、21（数组模式至多一个 `..`、`Show`→`@debug.to_string`/`repr`、`catch`/`<|` 优先级）、22（rabbit 全栈）、23（async trait impl 静默丢弃、core 无文件 IO、`MOON_CC`、`--noproxy`）、24（生态包：moonai/openai/pi-moonbit/mcp、`conglinyizhi/moondbus`+`moonsni` 桌面集成）。
+- **`~/.pi/agent/skills/external/clyzhi-moonwell-spring/references/rabbita-fullstack.md`** — rabbit + moonback 全栈 SSR 的 API 速查与八大失败经验。
+- **同目录 `patches.md`** — 补丁 20（服务端 native/默认 wasm 陷阱）、21（`Show`→`@debug.to_string`/`repr`、`catch`/`<|` 优先级）、22（rabbit 全栈）、23（async trait impl 静默丢弃、core 无文件 IO、`MOON_CC`、`--noproxy`）、24（生态包）。
 - 生态包速查在 `references/patches.min.md`。
-
-这些是踩过的坑，能省掉大量重复调查。
-
-## 差分测试（质量背书）
-
-用 dart-sass 作 oracle 做差分对比；用例来自 `test/cases` + 上游 `sass-spec`：
-
-```bash
-node scripts/diff.mjs                            # 自带 cases
-node scripts/diff.mjs test/sass-spec/spec/variables
-```
-
-差分报告见 `test/spec-gap.md`（通过率、已支持特性、归档的 deep-water：完整 SCSS value 模型、`@use/@forward` 模块系统等）。
 
 ## 已知限制
 
-- SCSS 为**子集**：`@extend`、完整内置函数（颜色/数学）、`@use/@forward` 模块系统未实现
-- 运算对齐到「运算符紧密/连接/裸括号吸收」；剩余 `calc()`/`infinity`/多单位运算属 value 系统深水区
-- LESS 引擎尚未实现
+- **SCSS 为子集**：`@extend`、完整内置函数（颜色/数学）、`@use/@forward` 模块系统未实现。
+- **LESS 持续对齐中**：mixin 守卫 `when`、`@arguments`、更深的 lazy 作用域未实现（现有用例 + 随机构建已对齐，见 diff）。
+- 运算对齐到「运算符紧密/连接/裸括号吸收」；剩余 `calc()`/`infinity`/多单位运算属 value 系统深水区。
