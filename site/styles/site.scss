@@ -63,10 +63,8 @@ $note: #6a6570;
 }
 .editor-col { display: flex; flex-direction: column; background: $code-bg; height: 340px; }
 .editor-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: $code-head; color: $sub; padding: 0.55rem 1rem; font-size: 0.9rem; border-bottom: 1px solid $code-border; min-height: 2.4rem; }
-.editor-head-left { display: flex; align-items: center; gap: 0.55rem; }
-.editor-head button { background: $cta-bg; color: #fff; border: 0; border-radius: 0.25rem; padding: 0.15rem 0.5rem; font-size: 0.8rem; cursor: pointer; }
-.editor-head button:hover { filter: brightness(1.1); }
-.editor-head select { background: $code-bg; color: $sub; border: 1px solid $code-border; border-radius: 0.25rem; padding: 0.15rem 0.4rem; font-size: 0.8rem; }
+.editor-head-left { display: flex; align-items: center; gap: 0.5rem; }
+.editor-head-out { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; background: $code-head; color: $sub; padding: 0.55rem 1rem; border-bottom: 1px solid $code-border; min-height: 2.4rem; }
 .editor-col textarea, .editor-col pre {
   flex: 1;
   width: 100%;
@@ -129,3 +127,88 @@ $note: #6a6570;
 .editor-input textarea::-webkit-scrollbar {
   display: none;
 }
+// ── 变量注入 + 压缩输出工具条 ──
+.vars-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  background: $code-head;
+  border-top: 1px solid $code-border;
+  border-radius: 0 0 0.35rem 0.35rem;
+  grid-column: 1 / -1;
+}
+.vars-bar-top { display: flex; align-items: center; gap: 0.8rem; }
+.vars-title { font-size: 0.8rem; color: $sub; font-weight: 600; }
+.vars-bar button#add-var {
+  background: $cta-bg; color: #fff; border: 0; border-radius: 0.25rem;
+  padding: 0.25rem 0.6rem; font-size: 0.8rem; cursor: pointer;
+}
+.minify-toggle { font-size: 0.8rem; color: $sub; display: flex; align-items: center; gap: 0.3rem; }
+.minify-toggle input { accent-color: $cta-bg; }
+/* 说明笔记：编辑器下方（footer 前），居中与代码块同宽 */
+.output-note {
+  max-width: 960px;
+  margin: 1.5rem auto 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid $code-border;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  color: $note;
+  line-height: 1.6;
+}
+.output-note p { margin: 0 0 0.35rem; }
+.output-note p:last-child { margin-bottom: 0; }
+.output-note a { color: $title; text-decoration: underline; text-underline-offset: 2px; }
+.output-note a:hover { color: #fff; }
+/* 变量 tag：工具栏新起一行，横向排列，放不下自动换行 */
+#vars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex-basis: 100%;
+  padding-top: 0.5rem;
+  border-top: 1px dashed $code-border;
+}
+.vars-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: $code-bg;
+  border: 1px solid $code-border;
+  border-radius: 1rem;
+  padding: 0.15rem 0.3rem 0.15rem 0.65rem;
+}
+.vars-tag::before { content: "$"; color: $title; font-size: 0.8rem; margin-right: 0.2rem; }
+.vars-tag-name, .vars-tag-value {
+  background: transparent;
+  border: 0;
+  color: $text;
+  font-size: 0.8rem;
+  padding: 0.1rem;
+  width: auto;
+  min-width: 2.5rem;
+  field-sizing: content;
+}
+.vars-tag-del {
+  background: transparent; color: $sub; border: 0; cursor: pointer;
+  font-size: 0.85rem; line-height: 1; padding: 0.1rem 0.3rem;
+}
+.vars-tag-del:hover { color: #fff; }
+.vars-tag-del:disabled { opacity: 0.4; cursor: not-allowed; }
+.vars-tag-del:disabled:hover { color: $sub; }
+.vars-tag-name[readonly] { opacity: 0.75; cursor: not-allowed; }
+
+// ── 解析模式切换按钮（SCSS/SASS/LESS，左右两组，active 用强调色）──
+.lang-btn {
+  background: transparent; color: $sub;
+  border: 1px solid $code-border; border-radius: 0.25rem;
+  padding: 0.2rem 0.55rem; font-size: 0.8rem; cursor: pointer;
+  min-width: 4.1rem; text-align: center;
+}
+.lang-btn:hover { color: #fff; border-color: $sub; }
+.lang-btn.active {
+  background: $cta-bg; color: #fff; border-color: $cta-bg; font-weight: 600;
+}
+.lang-group { display: flex; gap: 0.5rem; align-items: center; }

@@ -125,23 +125,42 @@ fn home_page() -> @rabbita.Val[@html.Html] {
             @html.node("div", @html.Attrs::build().class("editor-col"), [
               @html.node("div", @html.Attrs::build().class("editor-head"), [
                 @html.node("div", @html.Attrs::build().class("editor-head-left"), [
-                  @html.node("button", @html.Attrs::build().id("load-sample"), [@html.text("载入示例")]),
-                  @html.node("select", @html.Attrs::build().id("lang-select"), [
-                    @html.node("option", @html.Attrs::build().value("scss"), [@html.text("SCSS")]),
-                    @html.node("option", @html.Attrs::build().value("sass"), [@html.text("SASS")]),
-                    @html.node("option", @html.Attrs::build().value("less"), [@html.text("LESS")]),
-                  ]),
+                  @html.text("输入"),
+                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "scss"), [@html.text("SCSS")]),
+                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "sass"), [@html.text("SASS")]),
+                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "less"), [@html.text("LESS")]),
                 ]),
               ]),
               @html.node("textarea", @html.Attrs::build().id("scss-in"), [
-                @html.text("$c: blue; $gap: 8px;\n.card {\n  color: $c;\n  .title { margin-top: $gap; }\n}"),
+                @html.text(".card {\n  background: $yellow;\n  color: $green;\n  border: 2px solid $red;\n  .title {\n    box-shadow: 0 0 6px $blue;\n  }\n}"),
               ]),
             ]),
             @html.node("div", @html.Attrs::build().class("editor-col"), [
-              @html.node("div", @html.Attrs::build().class("editor-head"), [
-                @html.text("输出 - CSS"),
+              @html.node("div", @html.Attrs::build().class("editor-head").class("editor-head-out"), [
+                @html.node("div", @html.Attrs::build().class("lang-group"), [
+                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "less"), [@html.text("LESS")]),
+                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "sass"), [@html.text("SASS")]),
+                  @html.node("button", @html.Attrs::build().class("lang-btn").data_set("lang", "scss"), [@html.text("SCSS")]),
+                  @html.text("输出"),
+                ]),
               ]),
               @html.node("pre", @html.Attrs::build().id("css-out"), @html.nothing),
+            ]),
+            // 变量注入 + 压缩输出（代码块下方，grid 内跨列与代码块同宽）
+            @html.node("div", @html.Attrs::build().class("vars-bar"), [
+              @html.node("div", @html.Attrs::build().class("vars-bar-top"), [
+                @html.node("span", @html.Attrs::build().class("vars-title"), [@html.text("变量注入")]),
+                @html.node("button", @html.Attrs::build().id("add-var"), [@html.text("创建变量")]),
+                @html.node("label", @html.Attrs::build().class("minify-toggle").title("默认多行 = Sass 的 expanded 可读格式；勾选后压缩为单行（对应 Sass 的 compressed 模式）"), [
+                  @html.node("input", @html.Attrs::build().type_("checkbox").id("minify"), @html.nothing),
+                  @html.text(" 压缩输出 (.min.css)"),
+                ]),
+                @html.node("label", @html.Attrs::build().class("minify-toggle").title("去掉输出开头/末尾的不可见空行（不动行与行之间的换行）"), [
+                  @html.node("input", @html.Attrs::build().type_("checkbox").id("trim-blank").checked(true), @html.nothing),
+                  @html.text(" 去掉首尾空行"),
+                ]),
+              ]),
+              @html.node("div", @html.Attrs::build().id("vars"), @html.nothing),
             ]),
           ]),
         ]),
