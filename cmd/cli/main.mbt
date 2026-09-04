@@ -6,8 +6,8 @@ async fn main {
   let args = @env.args()
   let sub = if args.length() > 1 { args[1] } else { "help" }
   match sub {
-    "compile" => run_compile()
-    "compile-less" => run_compile_less()
+    "compile" => run_compile(args)
+    "compile-less" => run_compile_less(args)
     "format" => run_format(args)
     "diagnose" => run_diagnose()
     "gen-types" => run_gen_types()
@@ -49,7 +49,8 @@ async fn read_stdin_all() -> String {
 }
 
 ///| compile：stdin 以 NUL 分隔多个 SCSS，逐一编译，NUL 分隔输出，失败输出 MB_ERROR
-async fn run_compile() -> Unit {
+async fn run_compile(args : Array[String]) -> Unit {
+  let (vars, minify) = compile_flags(args)
   let whole = try read_stdin_all() catch {
     e => {
       println("MB_ERROR: read \{e}")
@@ -57,12 +58,15 @@ async fn run_compile() -> Unit {
     }
   }
   emit_batch(whole, fn(src : String) -> String {
-    try @mb.compile_scss(src) catch { e => "MB_ERROR: \{e}" }
+    let css = try @mb.compile_scss_with_vars(src, vars) catch { e => "MB_ERROR: \{e}" }
+    if minify { @mb.minify_css(css) } else { css }
   })
 }
 
 ///| compile-less：同 compile，但走 LESS 引擎
-async fn run_compile_less() -> Unit {
+async fn run_compile_less(args : Array[String]) -> Unit {
+  let (vars, minify) = compile_flags(args)
+  let prefix = less_prefix(vars)
   let whole = try read_stdin_all() catch {
     e => {
       println("MB_ERROR: read \{e}")
@@ -70,7 +74,8 @@ async fn run_compile_less() -> Unit {
     }
   }
   emit_batch(whole, fn(src : String) -> String {
-    try @mb.compile_less(src) catch { e => "MB_ERROR: \{e}" }
+    let css = try @mb.compile_less(prefix + src) catch { e => "MB_ERROR: \{e}" }
+    if minify { @mb.minify_css(css) } else { css }
   })
 }
 
@@ -212,4 +217,97 @@ async fn run_diagnose() -> Unit {
       println(w)
     }
   }
+}
+
+///| 解析 compile 的 --vars <file> 与 --minify 选项，返回 (变量表, 是否压缩)
+async fn compile_flags(args : Array[String]) -> (Map[String, String], Bool) {
+  let mut vars_file = ""
+  let mut minify = false
+  let mut i = 2
+  while i < args.length() {
+    match args[i] {
+      "--vars" => {
+        if i + 1 < args.length() {
+          vars_file = args[i + 1]
+          i += 1
+        }
+      }
+      "--minify" => minify = true
+      _ => ()
+    }
+    i += 1
+  }
+  let vars : Map[String, String] = if vars_file.length() > 0 {
+    try read_vars(vars_file) catch { _ => Map::of([]) }
+  } else {
+    Map::of([])
+  }
+  (vars, minify)
+}
+
+///| less 变量前缀（@name: value;）
+fn less_prefix(vars : Map[String, String]) -> String {
+  let sb = StringBuilder::new()
+  vars.each(fn(k, v) {
+    sb.write_string("@")
+    sb.write_string(k)
+    sb.write_string(": ")
+    sb.write_string(v)
+    sb.write_string(";\n")
+  })
+  sb.to_string()
+}
+
+///| 按扩展名读 json/toml 键值对为变量表（.toml 走 TOML，其余走 JSON）
+async fn read_vars(file : String) -> Map[String, String] {
+  let content = try read_file_text(file) catch { _ => "" }
+  if file.ends_with(".toml") {
+    toml_to_vars(content)
+  } else {
+    json_to_vars(content)
+  }
+}
+
+async fn read_file_text(path : String) -> String {
+  let data = try @fs.read_file(path) catch { _ => "" }
+  try { data.text() } catch { _ => "" }
+}
+
+///| json {"c":"10px"} → 变量表；只取 Object 顶层的字符串值
+fn json_to_vars(content : String) -> Map[String, String] {
+  let vars : Map[String, String] = Map::of([])
+  try {
+    let j = @json.parse(content)
+    match j.as_object() {
+      Some(obj) => obj.each(fn(k, v) {
+        match v.as_string() {
+          Some(s) => vars[k] = s
+          None => ()
+        }
+      })
+      None => ()
+    }
+  } catch { _ => () }
+  vars
+}
+
+///| toml 顶层 k = "v" 键值 → 变量表
+fn toml_to_vars(content : String) -> Map[String, String] {
+  let vars : Map[String, String] = Map::of([])
+  try {
+    match @toml.parse(content) {
+      @toml.TomlValue::TomlTable(map) => map.each(fn(k, v) {
+        let sv = match v {
+          @toml.TomlValue::TomlString(s) => s
+          @toml.TomlValue::TomlInteger(i) => i.to_string()
+          @toml.TomlValue::TomlFloat(f) => f.to_string()
+          @toml.TomlValue::TomlBoolean(b) => b.to_string()
+          _ => ""
+        }
+        vars[k] = sv
+      })
+      _ => ()
+    }
+  } catch { _ => () }
+  vars
 }

@@ -30,4 +30,5 @@ description = "A pluggable CSS preprocessor compile facade: a single function tu
 import {
   "moonbitlang/async@0.21.2",
   "moonbitlang/x@0.5.1",
+  "conglinyizhi/toml@0.1.0",
 }

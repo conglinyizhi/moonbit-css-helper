@@ -3,8 +3,11 @@ import {
   "conglinyizhi/precss/backend_scss" @scss,
   "conglinyizhi/precss/backend_less" @less,
   "moonbitlang/core/env" @env,
+  "moonbitlang/core/json" @json,
+  "conglinyizhi/toml" @toml,
   "moonbitlang/async",
   "moonbitlang/async/stdio" @stdio,
+  "moonbitlang/async/fs" @fs,
 }
 
 supported_targets = "native"
