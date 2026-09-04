@@ -3,6 +3,7 @@ import {
   "moonbit-community/rabbita/html" @html,
   "conglinyizhi/moonbit_css_helper" @css,
   "conglinyizhi/moonbit_css_helper/core" @core,
+  "conglinyizhi/moonbit-css-site/tw" @tw,
   "moonbitlang/async",
   "moonbitlang/async/fs" @fs,
 }

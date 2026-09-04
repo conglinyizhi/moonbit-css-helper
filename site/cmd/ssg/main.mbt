@@ -42,15 +42,18 @@ fn home_page() -> @rabbita.Val[@html.Html] {
         ),
       ]),
       @html.node("body", @html.Attrs::build(), [
-        @html.node("h1", @html.Attrs::build(), [
-          @html.text("moonbit_css_helper"),
+        @html.node("h1", @html.Attrs::build().class(@tw.flex()), [
+          @html.text("moonbit_css_helper 智能提示 demo"),
         ]),
-        @html.node("p", @html.Attrs::build(), [
-          @html.text("用 MoonBit 写的 CSS 预处理器 + 自研 tailwind-like + rabbit SSG。"),
+        @html.node("p", @html.Attrs::build().class(@tw.mt_4()), [
+          @html.text("这行用了自研 tailwind 的 @tw.mt_4()："),
         ]),
-        @html.node("div", @html.Attrs::build(), [
-          @html.node("p", @html.Attrs::build(), [
-            @html.text("下面这个卡片用了自研 tailwind 的 utility 类。"),
+        @html.node("p", @html.Attrs::build().class(@tw.text_red()), [
+          @html.text("这行用了 @tw.text_red()。"),
+        ]),
+        @html.node("div", @html.Attrs::build().class(@tw.flex_row() + " " + @tw.gap_4()), [
+          @html.node("p", @html.Attrs::build().class(@tw.bg_blue() + " " + @tw.rounded()), [
+            @html.text("@tw.flex_row() / @tw.bg_blue() / @tw.rounded()"),
           ]),
         ]),
       ]),
