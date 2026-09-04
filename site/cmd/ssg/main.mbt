@@ -25,14 +25,25 @@ async fn main {
   copy_file("static/codemirror/mode/css/css.js", "out/codemirror/mode/css/css.js")
   copy_file("static/codemirror/theme/dracula.css", "out/codemirror/theme/dracula.css")
 
-  // 3) 渲染首页 -> out/index.html（rabbit SSR）
-  let page = @rabbita.new(fn() { home_page() })
-  let html = try page.render(url="http://127.0.0.1/", timeout=5000) catch {
+  // 3) 复制性能页前端与 CI 生成的 JSON 数据
+  copy_file("static/benchmark.js", "out/benchmark/benchmark.js")
+  copy_file("static/data/benchmark.json", "out/data/benchmark.json")
+
+  // 4) 渲染首页与性能页 -> out（rabbit SSR）
+  let home = @rabbita.new(fn() { home_page() })
+  let home_html = try home.render(url="http://127.0.0.1/", timeout=5000) catch {
+    _ => "<!DOCTYPE html><html><body>render error</body></html>"
+  }
+  let benchmark = @rabbita.new(fn() { benchmark_page() })
+  let benchmark_html = try benchmark.render(url="http://127.0.0.1/benchmark/", timeout=5000) catch {
     _ => "<!DOCTYPE html><html><body>render error</body></html>"
   }
   // rabbit SSR 的 <head> 默认不带 charset，补一个避免中文/特殊字符按默认编码乱码
-  let html_with_cs = html.replace(old="<head>", new="<head><meta charset=\"utf-8\">")
-  try @fs.write_file("out/index.html", html_with_cs) catch { _ => () }
+  let home_with_cs = home_html.replace(old="<head>", new="<head><meta charset=\"utf-8\">")
+  let benchmark_with_cs = benchmark_html.replace(old="<head>", new="<head><meta charset=\"utf-8\">")
+  try @fs.write_file("out/index.html", home_with_cs) catch { _ => () }
+  try @fs.mkdir("out/benchmark", recursive = true) catch { _ => () }
+  try @fs.write_file("out/benchmark/index.html", benchmark_with_cs) catch { _ => () }
 }
 
 ///| 读文件为 utf8 文本（SSG 容错：失败返回空串）
@@ -46,9 +57,11 @@ async fn read_text(path : String) -> String {
 ///| 复制文本文件到 out（自动建父目录，容错）
 async fn copy_file(src : String, dst : String) -> Unit {
   let txt = try read_text(src) catch { _ => "" }
-  let dir = dir_of(dst)
-  try @fs.mkdir(dir, recursive = true) catch { _ => () }
-  try @fs.write_file(dst, txt) catch { _ => () }
+  if txt.length() > 0 {
+    let dir = dir_of(dst)
+    try @fs.mkdir(dir, recursive = true) catch { _ => () }
+    try @fs.write_file(dst, txt) catch { _ => () }
+  }
 }
 
 ///| 取路径的父目录（去最后一个 / 之后的部分）
@@ -72,6 +85,54 @@ fn dir_of(p : String) -> String {
   } else {
     p[0:i].to_string()
   }
+}
+
+///| 性能页：说明测试方法，结果由前端从静态 JSON 加载
+fn benchmark_page() -> @rabbita.Val[@html.Html] {
+  let (state, _emit) = @rabbita.create_pure_state((), update=fn(model, _msg) { model })
+  state.view(_model => {
+    @html.html([
+      @html.node("head", @html.Attrs::build(), [
+        @html.node("title", @html.Attrs::build(), [@html.text("precss 性能比较")]),
+        @html.node("link", @html.Attrs::build().rel("stylesheet").href("../site.css?v=4"), @html.nothing),
+      ]),
+      @html.node("body", @html.Attrs::build().class("site-dark benchmark-page"), [
+        @html.node("header", @html.Attrs::build().class("site-header"), [
+          @html.node("a", @html.Attrs::build().class("site-logo").href("../"), [@html.text("precss")]),
+          @html.node("a", @html.Attrs::build().class("benchmark-back").href("../"), [@html.text("返回 Playground")]),
+        ]),
+        @html.node("main", @html.Attrs::build().class("benchmark-main"), [
+          @html.node("h1", @html.Attrs::build().class("site-title benchmark-title"), [@html.text("性能比较")]),
+          @html.node("p", @html.Attrs::build().class("site-sub benchmark-sub"), [
+            @html.text("用可复现的数据，看看 precss 在共同支持语法子集上的表现"),
+          ]),
+          @html.node("section", @html.Attrs::build().class("benchmark-card"), [
+            @html.node("h2", @html.Attrs::build(), [@html.text("最近一次基准结果")]),
+            @html.node("div", @html.Attrs::build().id("benchmark-results"), [
+              @html.node("p", @html.Attrs::build().class("benchmark-loading"), [@html.text("正在加载基准数据……")]),
+            ]),
+          ]),
+          @html.node("section", @html.Attrs::build().class("benchmark-card benchmark-method"), [
+            @html.node("h2", @html.Attrs::build(), [@html.text("测试方法")]),
+            @html.node("p", @html.Attrs::build(), [@html.text("基准使用同一棵确定性随机规则树生成 SCSS、缩进式 SASS 和 LESS 输入。每份输入先与对比实现进行归一化正确性校验，只有双方输出一致的数据才计入性能结果。")]),
+            @html.node("p", @html.Attrs::build(), [@html.text("当前结果衡量批量吞吐量：precss 每次采样启动一个 native CLI，通过 NUL 分隔批量编译；Dart Sass 与 less.js 在同一 Node.js 进程内循环调用 API。结果受输入、版本、硬件和系统负载影响，不代表所有项目中的固定加速比。")]),
+            @html.node("p", @html.Attrs::build().class("benchmark-warning"), [@html.text("注意：Dart Sass 对比项是 sass npm 包的 JavaScript API，不是 Dart Sass 原生 CLI；SASS 入口当前先转换为 SCSS 再编译。")]),
+          ]),
+          @html.node("section", @html.Attrs::build().class("benchmark-card benchmark-reproduce"), [
+            @html.node("h2", @html.Attrs::build(), [@html.text("本地复现")]),
+            @html.node("pre", @html.Attrs::build(), [@html.text("pnpm install\nmoon build --target native cmd/cli\nnode example/perf/bench.mjs --count 200 --depth 4 --seed 1 --iterations 5 --warmup 1")]),
+            @html.node("p", @html.Attrs::build(), [
+              @html.text("原始数据："),
+              @html.node("a", @html.Attrs::build().href("../data/benchmark.json"), [@html.text("benchmark.json")]),
+              @html.text(" · "),
+              @html.node("a", @html.Attrs::build().href("https://github.com/conglinyizhi/precss/tree/main/example/perf"), [@html.text("基准源码")]),
+            ]),
+          ]),
+        ]),
+        @html.node("script", @html.Attrs::build().type_("module").src("./benchmark.js"), @html.nothing),
+      ]),
+    ])
+  })
 }
 
 ///| 首页：深色 landing landing —— 深色 + 黄标题 + CTA + 双栏实时编译
@@ -111,6 +172,7 @@ fn home_page() -> @rabbita.Val[@html.Html] {
             @html.node("a", @html.Attrs::build().href("#docs"), [@html.text("文档")]),
             @html.node("a", @html.Attrs::build().href("#setup"), [@html.text("安装")]),
             @html.node("a", @html.Attrs::build().href("#try"), [@html.text("试用")]),
+            @html.node("a", @html.Attrs::build().href("benchmark/"), [@html.text("性能")]),
             @html.node("a", @html.Attrs::build().href("#github"), [@html.text("GitHub")]),
           ]),
         ]),
@@ -196,6 +258,8 @@ fn home_page() -> @rabbita.Val[@html.Html] {
           @html.node("p", @html.Attrs::build(), [
             @html.text("想了解更多？看看我们的 "),
             @html.node("a", @html.Attrs::build().href("#docs"), [@html.text("入门指南")]),
+            @html.text("，也可以查看 "),
+            @html.node("a", @html.Attrs::build().href("benchmark/"), [@html.text("性能基准")]),
             @html.text(" 或背后的人和想法"),
           ]),
         ]),

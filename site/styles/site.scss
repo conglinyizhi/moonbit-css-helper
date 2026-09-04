@@ -370,3 +370,46 @@ $note: #6a6570;
   .engine-control { top: 0; }
   .vars-bar-top { width: 100%; flex-wrap: wrap; }
 }
+
+.benchmark-page {
+  .site-header { max-width: 1100px; margin: 0 auto; }
+  .benchmark-back { color: $sub; text-decoration: none; font-size: 0.9rem; }
+  .benchmark-back:hover { color: #fff; }
+  .benchmark-main { width: min(100% - 2rem, 960px); margin: 0 auto 4rem; }
+  .benchmark-title { margin-top: 3.2rem; margin-bottom: 0.4rem; }
+  .benchmark-sub { margin-bottom: 2rem; }
+  .benchmark-card {
+    margin: 1.2rem 0;
+    padding: 1.35rem;
+    background: $code-head;
+    border: 1px solid $code-border;
+    border-radius: 0.45rem;
+    overflow-x: auto;
+  }
+  .benchmark-card h2 { margin: 0 0 0.9rem; color: $sub; font-size: 1.05rem; }
+  .benchmark-card p { margin: 0.65rem 0; line-height: 1.7; }
+  .benchmark-summary { color: $sub; }
+  .benchmark-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+  .benchmark-table th, .benchmark-table td { padding: 0.7rem 0.65rem; border-bottom: 1px solid $code-border; text-align: left; }
+  .benchmark-table th { color: $sub; font-size: 0.8rem; font-weight: 700; }
+  .benchmark-table td { color: $text; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; }
+  .benchmark-speedup { color: #86efac !important; font-weight: 700; }
+  .benchmark-valid { color: #86efac !important; }
+  .benchmark-invalid, .benchmark-error { color: #fca5a5 !important; }
+  .benchmark-loading { color: $sub; }
+  .benchmark-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.45rem 1rem; margin: 1.2rem 0 0; font-size: 0.78rem; }
+  .benchmark-meta dt { color: $sub; }
+  .benchmark-meta dd { margin: 0; color: $text; overflow-wrap: anywhere; }
+  .benchmark-warning { color: #fcd34d; }
+  .benchmark-reproduce pre { margin: 0.8rem 0; padding: 1rem; background: $code-bg; color: #e8e5e1; overflow-x: auto; }
+  .benchmark-card a { color: $title; }
+}
+
+@media (max-width: 700px) {
+  .benchmark-page {
+    .benchmark-main { width: min(100% - 1rem, 960px); }
+    .benchmark-card { padding: 1rem; }
+    .benchmark-meta { grid-template-columns: 1fr; gap: 0.15rem; }
+    .benchmark-meta dd { margin-bottom: 0.45rem; }
+  }
+}
