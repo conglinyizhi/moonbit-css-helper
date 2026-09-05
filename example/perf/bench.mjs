@@ -6,33 +6,52 @@
 //   - Dart Sass JS：Node.js `sass` 包的 compileString API，在同一 Node 进程内循环
 //   - less.js：Node.js `less` 包，在同一 Node 进程内循环
 //
-// 这不是所有 Sass/LESS 项目的性能保证。每份输入先做归一化正确性校验，
-// 只有双方都能编译且输出一致的数据才计入结果。
+// 数据集由 example/perf/datasets/manifest.json 描述，并按固定 seed 确定性生成。
+// 每份输入先做归一化正确性校验，只有双方输出一致的数据才计入性能结果。
+// 资源测量是独立阶段，目前在 Linux 上记录 precss native CLI 的峰值 RSS。
 //
 // 用法：
-//   node example/perf/bench.mjs [份数] [嵌套深度] [seed]
-//   node example/perf/bench.mjs --count 200 --depth 4 --seed 1 --iterations 5 --warmup 1 --json result.json
+//   node example/perf/bench.mjs --profile quick
+//   node example/perf/bench.mjs --profile release --iterations 5 --warmup 1 --json result.json
+//   node example/perf/bench.mjs [份数] [嵌套深度] [seed]  # 兼容旧用法
 import { compileString } from 'sass'
 import less from 'less'
-import { execFileSync } from 'node:child_process'
-import { cpus, platform, release, totalmem } from 'node:os'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { execFileSync, spawn } from 'node:child_process'
+import { cpus, platform, release, tmpdir, totalmem } from 'node:os'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = new URL('../..', import.meta.url).pathname
 const CLI = join(root, '_build/native/debug/build/cmd/cli/cli.exe')
+const manifestPath = join(root, 'example/perf/datasets/manifest.json')
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+const knownValueFlags = new Set(['--profile', '--count', '--depth', '--seed', '--iterations', '--warmup', '--json'])
 
-function option(name, fallback) {
-  const i = process.argv.indexOf(name)
-  return i >= 0 && process.argv[i + 1] !== undefined ? process.argv[i + 1] : fallback
+function parseArgs() {
+  const values = {}
+  const positionals = []
+  for (let i = 2; i < process.argv.length; i++) {
+    const arg = process.argv[i]
+    if (arg.startsWith('--')) {
+      if (knownValueFlags.has(arg)) values[arg] = process.argv[++i]
+      else values[arg] = true
+    } else {
+      positionals.push(arg)
+    }
+  }
+  return { values, positionals }
 }
-const positional = process.argv.slice(2).filter((x, i, a) => !x.startsWith('--') && (i === 0 || !a[i - 1].startsWith('--')))
-const N = Number(option('--count', positional[0] || 40))
-const DEPTH = Number(option('--depth', positional[1] || 4))
-const SEED = Number(option('--seed', positional[2] || 1))
-const ITERATIONS = Number(option('--iterations', 5))
-const WARMUP = Number(option('--warmup', 1))
-const jsonPath = option('--json', null)
+const { values: args, positionals } = parseArgs()
+const profileName = args['--profile'] || 'quick'
+const profile = manifest.profiles[profileName]
+if (!profile) throw new Error(`unknown benchmark profile: ${profileName}`)
+const N = Number(args['--count'] ?? (args['--profile'] ? profile.count : positionals[0] || profile.count))
+const DEPTH = Number(args['--depth'] ?? (args['--profile'] ? profile.depth : positionals[1] || profile.depth))
+const SEED = Number(args['--seed'] ?? (args['--profile'] ? profile.seed : positionals[2] || profile.seed))
+const ITERATIONS = Number(args['--iterations'] ?? profile.iterations)
+const WARMUP = Number(args['--warmup'] ?? profile.warmup)
+const targetInputBytes = Number(profile.target_input_bytes || 0)
+const jsonPath = args['--json'] || null
 
 if (!Number.isInteger(N) || N < 1 || !Number.isInteger(DEPTH) || DEPTH < 0 ||
     !Number.isInteger(SEED) || !Number.isInteger(ITERATIONS) || ITERATIONS < 1 ||
@@ -45,7 +64,6 @@ function rng(seed) {
   return () => {
     s ^= s << 13
     s ^= s >>> 17
-    s ^= s << 5
     s >>>= 0
     return s / 4294967296
   }
@@ -58,69 +76,77 @@ const PROPS = ['color', 'background', 'margin', 'padding', 'width', 'height', 'f
 const SELS = ['.card', '.btn', '.grid', '#main', '.wrapper', 'div', '.tag-item']
 const UNITS = ['px', 'em', 'rem', '%']
 const val = (r) => `${pick(r, [10, 12, 16, 24, 32, 48, 64])}${pick(r, UNITS)}`
-const color = (r) => pick(r, COLORS)
 const prop = (r) => pick(r, PROPS)
 const sel = (r) => `${pick(r, SELS)}-${id(r, 'x')}`
 const varName = (r) => `${pick(r, ['c', 'g', 'w', 'm'])}${id(r, '')}`
 
-function gen_tree(r, level, depth) {
+function genTree(r, level, depth) {
   const node = { sel: sel(r), decls: [], varName: null, varVal: null, children: [] }
   const nd = 1 + Math.floor(r() * 3)
   for (let i = 0; i < nd; i++) node.decls.push(`${prop(r)}: ${val(r)}`)
   if (r() < 0.45) {
     node.varName = varName(r)
-    node.varVal = color(r)
+    node.varVal = pick(r, COLORS)
   }
   if (level < depth) {
     const nc = 1 + Math.floor(r() * 2)
-    for (let i = 0; i < nc; i++) node.children.push(gen_tree(r, level + 1, depth))
+    for (let i = 0; i < nc; i++) node.children.push(genTree(r, level + 1, depth))
   }
   return node
 }
-function emit_scss(n, ind) {
+function emitScss(n, ind) {
   let out = `${ind}${n.sel} {\n`
   if (n.varName) out += `${ind}  $${n.varName}: ${n.varVal};\n`
   for (const d of n.decls) out += `${ind}  ${d};\n`
-  for (const c of n.children) out += emit_scss(c, ind + '  ')
-  out += `${ind}}\n`
-  return out
+  for (const c of n.children) out += emitScss(c, ind + '  ')
+  return out + `${ind}}\n`
 }
-function emit_sass(n, ind) {
+function emitSass(n, ind) {
   let out = `${ind}${n.sel}\n`
   if (n.varName) out += `${ind}  $${n.varName}: ${n.varVal}\n`
   for (const d of n.decls) out += `${ind}  ${d}\n`
-  for (const c of n.children) out += emit_sass(c, ind + '  ')
+  for (const c of n.children) out += emitSass(c, ind + '  ')
   return out
 }
-function emit_less(n, ind) {
+function emitLess(n, ind) {
   let out = `${ind}${n.sel} {\n`
   if (n.varName) out += `${ind}  @${n.varName}: ${n.varVal};\n`
   for (const d of n.decls) out += `${ind}  ${d};\n`
-  for (const c of n.children) out += emit_less(c, ind + '  ')
-  out += `${ind}}\n`
+  for (const c of n.children) out += emitLess(c, ind + '  ')
+  return out + `${ind}}\n`
+}
+function inflate(source, targetBytes) {
+  if (!targetBytes || Buffer.byteLength(source) >= targetBytes) return source
+  let out = source
+  while (Buffer.byteLength(out) < targetBytes) out += source
   return out
 }
-
-const scssList = []
-const sassList = []
-const lessList = []
-for (let i = 0; i < N; i++) {
-  const r = rng(SEED + i * 7919)
-  let scss = ''
-  let sass = ''
-  let less = ''
-  const tops = 1 + Math.floor(r() * 3)
-  for (let t = 0; t < tops; t++) {
-    const tree = gen_tree(r, 0, DEPTH)
-    scss += emit_scss(tree, '')
-    sass += emit_sass(tree, '')
-    less += emit_less(tree, '')
+function makeDataset() {
+  const scssList = []
+  const sassList = []
+  const lessList = []
+  const perFileTarget = targetInputBytes ? Math.ceil(targetInputBytes / N) : 0
+  for (let i = 0; i < N; i++) {
+    const r = rng(SEED + i * 7919)
+    let scss = ''
+    let sass = ''
+    let less = ''
+    const tops = 1 + Math.floor(r() * 3)
+    for (let t = 0; t < tops; t++) {
+      const tree = genTree(r, 0, DEPTH)
+      scss += emitScss(tree, '')
+      sass += emitSass(tree, '')
+      less += emitLess(tree, '')
+    }
+    scssList.push(inflate(scss, perFileTarget))
+    sassList.push(inflate(sass, perFileTarget))
+    lessList.push(inflate(less, perFileTarget))
   }
-  scssList.push(scss)
-  sassList.push(sass)
-  lessList.push(less)
+  return { scssList, sassList, lessList }
 }
 
+const { scssList, sassList, lessList } = makeDataset()
+const bytes = (list) => list.reduce((n, x) => n + Buffer.byteLength(x), 0)
 const norm = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').trim()
 const now = (f) => {
   const t = process.hrtime.bigint()
@@ -145,7 +171,6 @@ function stats(samples) {
     samples: samples.map((x) => Number(x.toFixed(3))),
   }
 }
-
 function moonOnce(payload, sub) {
   const r = now(() => execFileSync(CLI, [sub], {
     input: payload,
@@ -163,7 +188,6 @@ async function lessOnce(list) {
   for (const s of list) parts.push((await less.render(s)).css)
   return { ms: Number(process.hrtime.bigint() - t) / 1e6, parts }
 }
-
 async function sample(moonList, sub, official, officialArgs) {
   const payload = moonList.join('\u0000')
   let firstMoon = null
@@ -182,9 +206,14 @@ async function sample(moonList, sub, official, officialArgs) {
     moonSamples.push(m.ms)
     officialSamples.push(o.ms)
   }
-  return { moon: stats(moonSamples), official: stats(officialSamples), moonParts: firstMoon.parts, officialParts: firstOfficial.parts }
+  return {
+    moon: stats(moonSamples),
+    official: stats(officialSamples),
+    moonParts: firstMoon.parts,
+    officialParts: firstOfficial.parts,
+    payload,
+  }
 }
-
 function verify(mParts, oParts) {
   let pass = 0
   for (let k = 0; k < Math.min(mParts.length, oParts.length); k++) {
@@ -198,50 +227,101 @@ function versionOf(pkg) {
 function commandOutput(command, args) {
   try { return execFileSync(command, args, { cwd: root }).toString().trim() } catch { return 'unknown' }
 }
+async function measurePeakRss(payload, sub) {
+  if (platform() !== 'linux') return null
+  const child = spawn(CLI, [sub], { cwd: root })
+  let output = ''
+  let peak = 0
+  child.stdout.on('data', (chunk) => { output += chunk.toString() })
+  child.stderr.on('data', () => {})
+  const sample = () => {
+    try {
+      const status = readFileSync(`/proc/${child.pid}/status`, 'utf8')
+      const match = status.match(/^VmHWM:\s+(\d+)\s+kB$/m) || status.match(/^VmRSS:\s+(\d+)\s+kB$/m)
+      if (match) peak = Math.max(peak, Number(match[1]))
+    } catch {}
+  }
+  // 先在 stdin 关闭前采样一次，避免极短任务在第一轮定时器前已经退出。
+  sample()
+  const timer = setInterval(sample, 1)
+  child.stdin.end(payload)
+  const exitCode = await new Promise((resolve) => child.on('close', resolve))
+  clearInterval(timer)
+  sample()
+  if (exitCode !== 0 || peak <= 0) return null
+  // Linux VmHWM is the process high-water RSS and is independent of benchmark timing.
+  return { peak_rss_bytes: peak * 1024, peak_rss_kib: peak, measurement: 'Linux /proc VmHWM peak RSS', available: true }
+}
 
 async function main() {
   const runs = []
+  const resources = []
   const scss = await sample(scssList, 'compile', (xs) => Promise.resolve(dartOnce(xs)), scssList)
   const sass = await sample(sassList, 'compile', (xs) => Promise.resolve(dartOnce(xs, 'indented')), sassList)
   const lessRun = await sample(lessList, 'compile-less', lessOnce, lessList)
-  const add = (name, r, baseline) => {
+  const add = async (name, r, baseline, inputList) => {
     const matched = verify(r.moonParts, r.officialParts)
     const valid = matched === N
     const speedup = valid ? Number((r.official.median_ms / r.moon.median_ms).toFixed(3)) : null
     runs.push({
       syntax: name,
+      input_bytes: bytes(inputList),
+      output_bytes: bytes(r.moonParts),
       precss_native_cli: r.moon,
       baseline: { ...baseline, stats: r.official },
       speedup_x: speedup,
       correctness: { matched, total: N, included: valid },
     })
+    resources.push({
+      syntax: name,
+      runner: 'precss native CLI',
+      ...(await measurePeakRss(r.payload, name === 'less' ? 'compile-less' : 'compile') || {
+        peak_rss_bytes: null,
+        peak_rss_kib: null,
+        measurement: 'unavailable on this platform',
+        available: false,
+      }),
+    })
   }
-  add('scss', scss, { name: 'Dart Sass JS API', package: 'sass', api: 'compileString' })
-  add('sass', sass, { name: 'Dart Sass JS API', package: 'sass', api: 'compileString', syntax: 'indented' })
-  add('less', lessRun, { name: 'less.js', package: 'less', api: 'render' })
+  await add('scss', scss, { name: 'Dart Sass JS API', package: 'sass', api: 'compileString' }, scssList)
+  await add('sass', sass, { name: 'Dart Sass JS API', package: 'sass', api: 'compileString', syntax: 'indented' }, sassList)
+  await add('less', lessRun, { name: 'less.js', package: 'less', api: 'render' }, lessList)
 
-  const inputBytes = scssList.reduce((n, x) => n + Buffer.byteLength(x), 0)
-  const outputBytes = scss.moonParts.reduce((n, x) => n + Buffer.byteLength(x || ''), 0)
   const result = {
-    schema: 1,
+    schema: 2,
     project: 'conglinyizhi/precss',
     generated_at: new Date().toISOString(),
     commit: commandOutput('git', ['rev-parse', 'HEAD']),
+    profile: profileName,
+    dataset: {
+      name: profile.name,
+      count: N,
+      depth: DEPTH,
+      seed: SEED,
+      target_input_bytes: targetInputBytes,
+      actual_input_bytes: {
+        scss: bytes(scssList),
+        sass: bytes(sassList),
+        less: bytes(lessList),
+      },
+      iterations: ITERATIONS,
+      warmup: WARMUP,
+    },
     benchmark: {
-      name: 'deterministic-random-tree',
+      name: profile.name,
       count: N,
       depth: DEPTH,
       seed: SEED,
       iterations: ITERATIONS,
       warmup: WARMUP,
-      input_bytes: inputBytes,
-      output_bytes: outputBytes,
+      input_bytes: bytes(scssList),
+      output_bytes: bytes(scss.moonParts),
       measurement: 'batch throughput; one precss native CLI process per sample, JS baselines reused in the Node process',
     },
     environment: {
-      node: process.version,
-      sass: versionOf('sass'),
-      less: versionOf('less'),
+      node_js: process.version,
+      sass_npm: versionOf('sass'),
+      less_js: versionOf('less'),
       moonbit: commandOutput('moon', ['version']).split('\n')[0],
       os: `${platform()} ${release()}`,
       cpu: cpus()[0]?.model || 'unknown',
@@ -249,16 +329,20 @@ async function main() {
       memory_gb: Number((totalmem() / 1024 ** 3).toFixed(1)),
     },
     notes: [
-      '输入由同一棵确定性随机规则树生成，三种语法逻辑等价',
+      '输入由 manifest 描述的固定 seed 确定性生成，三种语法逻辑等价',
       '仅在双方输出归一化后一致时计入性能结果',
       'Dart Sass 对比项是 sass npm 包的 JavaScript API，不是 Dart Sass 原生 CLI',
       'precss 的 SASS 入口当前先将缩进语法转换为 SCSS 再编译',
+      'memory.resources 是独立资源测量，不计入性能耗时；目前仅 Linux 提供峰值 RSS',
     ],
     results: runs,
+    resources,
   }
 
+  // 修正每种语法的实际输出大小；benchmark 字段保留向后兼容的 SCSS 聚合值。
+  result.benchmark.output_bytes = runs[0].output_bytes
   const pad = (n) => String(n).padStart(10)
-  console.log(`\n===== precss 性能基准（份数=${N} 深度=${DEPTH} seed=${SEED} iterations=${ITERATIONS} warmup=${WARMUP}）=====`)
+  console.log(`\n===== precss 性能基准（profile=${profileName} 份数=${N} 深度=${DEPTH} seed=${SEED} iterations=${ITERATIONS} warmup=${WARMUP}）=====`)
   console.log(`${'格式'.padEnd(6)} ${'precss(ms)'.padStart(12)} ${'对比(ms)'.padStart(12)} ${'speedup'.padStart(10)} ${'正确性'.padStart(10)}`)
   console.log('------------------------------------------------------------------')
   for (const r of runs) {

@@ -44,10 +44,7 @@ jobs:
 
       - name: 运行性能基准并生成 JSON
         run: |
-          mkdir -p site/static/data
-          node example/perf/bench.mjs \
-            --count 200 --depth 4 --seed 1 --iterations 5 --warmup 1 \
-            --json site/static/data/benchmark.json | tee benchmark.log
+          pnpm run bench:release | tee benchmark.log
           node --input-type=module <<'EOF'
           import { readFileSync } from 'node:fs'
           const data = JSON.parse(readFileSync('site/static/data/benchmark.json', 'utf8'))
@@ -63,7 +60,7 @@ jobs:
           const summary = [
             '## precss 性能基准',
             '',
-            `数据集：${data.benchmark.name}，${data.benchmark.count} 份输入，深度 ${data.benchmark.depth}，${data.benchmark.iterations} 次采样`,
+            `Profile：${data.profile}；数据集：${data.dataset.name}；${data.dataset.count} 份输入；总输入 ${data.dataset.actual_input_bytes.scss} bytes；深度 ${data.dataset.depth}；${data.dataset.iterations} 次采样`,
             '',
             '| 格式 | precss native | 对比实现 | 加速比 | 正确性 |',
             '|---|---:|---:|---:|---:|',
@@ -77,7 +74,7 @@ jobs:
           import { readFileSync } from 'node:fs'
           const data = JSON.parse(readFileSync('site/static/data/benchmark.json', 'utf8'))
           const rows = data.results.map((r) => `| ${r.syntax.toUpperCase()} | ${r.precss_native_cli.median_ms} ms | ${r.baseline.stats.median_ms} ms | ${r.speedup_x ?? '-'}x | ${r.correctness.matched}/${r.correctness.total} |`)
-          process.stdout.write(['## precss 性能基准', '', `数据集：${data.benchmark.name}，${data.benchmark.count} 份输入，深度 ${data.benchmark.depth}，${data.benchmark.iterations} 次采样`, '', '| 格式 | precss native | 对比实现 | 加速比 | 正确性 |', '|---|---:|---:|---:|---:|', ...rows, '', `提交：${data.commit}`].join('\\n'))
+          process.stdout.write(['## precss 性能基准', '', `Profile：${data.profile}；数据集：${data.dataset.name}；${data.dataset.count} 份输入；总输入 ${data.dataset.actual_input_bytes.scss} bytes；深度 ${data.dataset.depth}；${data.dataset.iterations} 次采样`, '', '| 格式 | precss native | 对比实现 | 加速比 | 正确性 |', '|---|---:|---:|---:|---:|', ...rows, '', `提交：${data.commit}`].join('\\n'))
           EOF
 
       # 构建演示站（rabbita SSG）→ site/out（index.html + css + demo.js + codemirror/）

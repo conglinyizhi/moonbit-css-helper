@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "description": "precss performance benchmark profiles; sources are generated deterministically from profile parameters",
+  "profiles": {
+    "quick": {
+      "name": "deterministic-random-tree",
+      "count": 40,
+      "depth": 4,
+      "seed": 1,
+      "target_input_bytes": 0,
+      "iterations": 3,
+      "warmup": 1
+    },
+    "release": {
+      "name": "deterministic-random-tree",
+      "count": 40,
+      "depth": 4,
+      "seed": 1,
+      "target_input_bytes": 1048576,
+      "iterations": 5,
+      "warmup": 1
+    },
+    "large": {
+      "name": "deterministic-random-tree",
+      "count": 20,
+      "depth": 5,
+      "seed": 2,
+      "target_input_bytes": 10485760,
+      "iterations": 3,
+      "warmup": 1
+    },
+    "stress": {
+      "name": "deterministic-random-tree",
+      "count": 4,
+      "depth": 6,
+      "seed": 3,
+      "target_input_bytes": 104857600,
+      "iterations": 2,
+      "warmup": 0
+    }
+  }
+}

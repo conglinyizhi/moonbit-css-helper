@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "diff": "node scripts/diff.mjs"
+    "diff": "node scripts/diff.mjs",
+    "bench": "node example/perf/bench.mjs --profile quick",
+    "bench:release": "node scripts/bench-release.mjs"
   },
   "devDependencies": {
     "less": "^4.9.1",

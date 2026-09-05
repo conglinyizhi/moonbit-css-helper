@@ -148,14 +148,11 @@ echo 'a{color:red;font:bold}' | moon run cmd/cli -- format
 `example/perf/bench.mjs`：从**同一棵确定性随机规则树**发射 SCSS / SASS（缩进）/ LESS 三种等价源码，对比 `precss` native CLI 与 Dart Sass JS API / less.js 的批量编译吞吐量，并**逐份做正确性校验**。只有双方输出归一化后一致的格式才计入性能结论。
 
 ```bash
-# 先构建 native CLI，再运行可重复采样并生成 JSON
-MOON_CC=clang MOON_AR=ar MOON_LD=clang moon build --target native cmd/cli
-node example/perf/bench.mjs \\
-  --count 200 --depth 4 --seed 1 --iterations 5 --warmup 1 \\
-  --json /tmp/benchmark.json
+# 构建 native CLI、运行 release profile，并生成 JSON
+pnpm run bench:release
 ```
 
-JSON 会记录提交、输入规模、采样统计、版本、系统环境和正确性结果。注意：Dart Sass 对比项是 `sass` npm 包的 JavaScript API，不是 Dart Sass 原生 CLI；SASS 入口当前先转换为 SCSS 再编译。性能数字不是对所有项目的固定保证，应该结合输入、版本和运行环境解读。
+JSON 会记录提交、profile、精确输入/输出 bytes、采样统计、版本、系统环境、正确性结果和独立资源测量。固定数据集由 `example/perf/datasets/manifest.json` 描述并确定性生成；`release` profile 使用约 1 MiB 总输入，`large`/`stress` profile 用于更大的手动或定时实验。注意：Dart Sass 对比项是 `sass` npm 包的 JavaScript API，不是 Dart Sass 原生 CLI；SASS 入口当前先转换为 SCSS 再编译。性能数字不是对所有项目的固定保证，应该结合输入、版本和运行环境解读。
 
 ## 差分测试（质量背书）
 
