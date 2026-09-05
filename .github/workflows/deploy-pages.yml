@@ -35,6 +35,11 @@ jobs:
       - name: 更新根项目依赖
         run: moon update
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: 安装 Node 依赖
         run: pnpm install --frozen-lockfile
 
