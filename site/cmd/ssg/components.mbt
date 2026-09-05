@@ -90,10 +90,56 @@ fn lang_group(names : Array[String]) -> @html.Html {
   el("div", "lang-group", names.map(lang_button))
 }
 
-fn site_head(title_ : String, stylesheet : String) -> @html.Html {
-  plain("head", [
-    @html.title([txt(title_)]),
-    resource_link(stylesheet, "stylesheet"),
+fn site_head(title_ : String, stylesheets : Array[String]) -> @html.Html {
+  plain("head", [@html.title([txt(title_)])] +
+    stylesheets.map(stylesheet => resource_link(stylesheet, "stylesheet")))
+}
+
+fn site_header(prefix : String, show_back : Bool) -> @html.Html {
+  let nav = [
+    link(prefix + "#docs", "", "文档"),
+    link(prefix + "#setup", "", "安装"),
+    link(prefix + "#try", "", "试用"),
+    link(prefix + "benchmark/", "", "性能"),
+    link("https://github.com/conglinyizhi/precss", "", "GitHub"),
+  ]
+  let back = if show_back {
+    [link(prefix, "benchmark-back", "返回 Playground")]
+  } else {
+    []
+  }
+  let actions = if show_back {
+    back
+  } else {
+    [el("nav", "site-nav", nav)]
+  }
+  el("header", "site-header", [link(prefix + "#", "site-logo", "precss")] + actions)
+}
+
+fn site_footer(prefix : String) -> @html.Html {
+  el("footer", "site-footer", [
+    plain("p", [
+      txt("想了解更多？看看我们的 "),
+      link(prefix + "#docs", "", "入门指南"),
+      txt("，也可以查看 "),
+      link(prefix + "benchmark/", "", "性能基准"),
+      txt(" 或背后的人和想法"),
+    ]),
+  ])
+}
+
+fn site_shell(
+  title_ : String,
+  stylesheets : Array[String],
+  body_class : String,
+  prefix : String,
+  show_back : Bool,
+  content : @html.Html,
+  scripts : Array[@html.Html],
+) -> @html.Html {
+  @html.html([
+    site_head(title_, stylesheets),
+    el("body", body_class, [site_header(prefix, show_back), content, site_footer(prefix)] + scripts),
   ])
 }
 
@@ -105,22 +151,16 @@ fn vars_tag(name : String, value : String) -> @html.Html {
   ])
 }
 
-fn site_header(back_label : String?, back_href : String?) -> @html.Html {
-  let back = match (back_label, back_href) {
-    (Some(label), Some(href)) => [link(href, "benchmark-back", label)]
-    _ => []
-  }
-  el("header", "site-header", [link("#", "site-logo", "precss")] + back)
-}
-
 fn benchmark_page() -> @rabbita.Val[@html.Html] {
   let (state, _emit) : (@rabbita.Val[Unit], @rabbita.Emit[Unit]) = @rabbita.create_pure_state((), update=(model, _msg) => model)
   state.view(_model => {
-    @html.html([
-      site_head("precss 性能比较", "../site.css?v=4"),
-      el("body", "site-dark benchmark-page", [
-        site_header(Some("返回 Playground"), Some("../")),
-        el("main", "benchmark-main", [
+    site_shell(
+      "precss 性能比较",
+      ["../site.css?v=4"],
+      "site-dark benchmark-page",
+      "../",
+      true,
+      el("main", "benchmark-main", [
           el("h1", "site-title benchmark-title", [txt("性能比较")]),
           el("p", "site-sub benchmark-sub", [
             txt("用可复现的数据，看看 precss 在共同支持语法子集上的表现"),
@@ -133,13 +173,13 @@ fn benchmark_page() -> @rabbita.Val[@html.Html] {
           ]),
           el("section", "benchmark-card benchmark-method", [
             plain("h2", [txt("测试方法")]),
-            plain("p", [txt("基准使用同一棵确定性随机规则树生成 SCSS、缩进式 SASS 和 LESS 输入。每份输入先与对比实现进行归一化正确性校验，只有双方输出一致的数据才计入性能结果。")]),
-            plain("p", [txt("当前结果衡量批量吞吐量：precss 每次采样启动一个 native CLI，通过 NUL 分隔批量编译；Dart Sass 与 less.js 在同一 Node.js 进程内循环调用 API。结果受输入、版本、硬件和系统负载影响，不代表所有项目中的固定加速比。")]),
+            plain("p", [txt("基准使用 manifest 描述的固定 profile，由同一棵确定性随机规则树生成 SCSS、缩进式 SASS 和 LESS 输入。每份输入先与对比实现进行归一化正确性校验，只有双方输出一致的数据才计入性能结果。")]),
+            plain("p", [txt("当前结果衡量批量吞吐量：precss 每次采样启动一个 native CLI，通过 NUL 分隔批量编译；Dart Sass 与 less.js 在同一 Node.js 进程内循环调用 API。页面同时展示精确 bytes、友好单位、UTC/本地时间和独立峰值 RSS。结果受输入、版本、硬件和系统负载影响，不代表所有项目中的固定加速比。")]),
             el("p", "benchmark-warning", [txt("注意：Dart Sass 对比项是 sass npm 包的 JavaScript API，不是 Dart Sass 原生 CLI；SASS 入口当前先转换为 SCSS 再编译。")]),
           ]),
           el("section", "benchmark-card benchmark-reproduce", [
             plain("h2", [txt("本地复现")]),
-            plain("pre", [txt("pnpm install\nmoon build --target native cmd/cli\nnode example/perf/bench.mjs --count 200 --depth 4 --seed 1 --iterations 5 --warmup 1")]),
+            plain("pre", [txt("pnpm install\npnpm run bench:release")]),
             plain("p", [
               txt("原始数据："),
               link("../data/benchmark.json", "", "benchmark.json"),
@@ -148,45 +188,33 @@ fn benchmark_page() -> @rabbita.Val[@html.Html] {
             ]),
           ]),
         ]),
-        resource_script("./benchmark.js", Some("module")),
-      ]),
-    ])
+      [resource_script("./benchmark.js", Some("module"))],
+    )
   })
 }
 
 fn home_page() -> @rabbita.Val[@html.Html] {
   let (state, _emit) : (@rabbita.Val[Unit], @rabbita.Emit[Unit]) = @rabbita.create_pure_state((), update=(model, _msg) => model)
   state.view(_model => {
-    @html.html([
-      plain("head", [
-        resource_link("site.css?v=4", "stylesheet"),
-        resource_link("tailwind.css", "stylesheet"),
-        resource_link("codemirror/lib/codemirror.css", "stylesheet"),
-        resource_link("codemirror/theme/dracula.css", "stylesheet"),
-      ]),
-      el("body", "site-dark", [
-        site_header(None, None),
-        plain("main", [
+    site_shell(
+      "precss",
+      ["site.css?v=4", "tailwind.css", "codemirror/lib/codemirror.css", "codemirror/theme/dracula.css"],
+      "site-dark",
+      "",
+      false,
+      plain("main", [
           el("h1", "site-title", [txt("precss")]),
           el("p", "site-sub", [txt("MoonBit 实现的 CSS 预处理引擎")]),
           link("#docs", "site-cta", "快速开始"),
           el("p", "site-note", [txt("左边编辑器用 CodeMirror 实现着色；右侧不是")]),
           editor(),
         ]),
-        el("footer", "site-footer", [
-          plain("p", [
-            txt("想了解更多？看看我们的 "),
-            link("#docs", "", "入门指南"),
-            txt("，也可以查看 "),
-            link("benchmark/", "", "性能基准"),
-            txt(" 或背后的人和想法"),
-          ]),
-        ]),
+      [
         resource_script("./codemirror/lib/codemirror.js", None),
         resource_script("./codemirror/mode/css/css.js", None),
         resource_script("./demo.js?v=4", Some("module")),
-      ]),
-    ])
+      ],
+    )
   })
 }
 

@@ -24,9 +24,12 @@ $note: #6a6570;
   padding: 0.9rem 2rem;
   border-bottom: 1px solid #2e2745;
 }
-.site-logo { color: $title; font-weight: 800; font-size: 1.15rem; text-decoration: none; }
+.site-logo { color: $title; font-weight: 800; font-size: 1.15rem; }
+.site-logo,
+.site-nav a,
+.site-footer a { text-decoration: none; }
 .site-nav { display: none; }
-.site-nav a { color: $text; text-decoration: none; }
+.site-nav a { color: $text; }
 .site-nav a:hover { color: #fff; }
 
 .site-title {
@@ -134,9 +137,13 @@ $note: #6a6570;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
-.engine-control.engine-unavailable .engine-switch { display: none; }
-.engine-control.engine-unavailable .engine-js-only { display: inline; }
-.engine-control.engine-loading { visibility: hidden; }
+.engine-control {
+  &.engine-unavailable {
+    .engine-switch { display: none; }
+    .engine-js-only { display: inline; }
+  }
+  &.engine-loading { visibility: hidden; }
+}
 
 .site-editor {
   position: relative;
@@ -226,7 +233,7 @@ $note: #6a6570;
 }
 
 .site-footer { text-align: center; padding: 2.2rem 2rem; color: $text; font-size: 0.98rem; }
-.site-footer a { color: $title; text-decoration: none; font-weight: 600; }
+.site-footer a { color: $title; font-weight: 600; }
 
 /* ---- 代码高亮 token（紫色系）---- */
 .tok-sel { color: #c084fc; }
@@ -393,6 +400,9 @@ $note: #6a6570;
   .benchmark-table th, .benchmark-table td { padding: 0.7rem 0.65rem; border-bottom: 1px solid $code-border; text-align: left; }
   .benchmark-table th { color: $sub; font-size: 0.8rem; font-weight: 700; }
   .benchmark-table td { color: $text; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; }
+  .benchmark-table .benchmark-size { white-space: pre-line; line-height: 1.55; }
+  .benchmark-subheading { margin: 1.4rem 0 0.7rem; color: $sub; font-size: 0.95rem; }
+  .benchmark-note { color: $note; font-size: 0.78rem; }
   .benchmark-speedup { color: #86efac !important; font-weight: 700; }
   .benchmark-valid { color: #86efac !important; }
   .benchmark-invalid, .benchmark-error { color: #fca5a5 !important; }
