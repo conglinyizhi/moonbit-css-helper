@@ -432,13 +432,15 @@ fn spread_list_string(s : String) -> Array[String] {
   let mut cur = StringBuilder()
   for ch in s {
     if ch == ' ' || ch == '\t' {
-      if cur.to_string().length() > 0 {
-        out.push(cur.to_string())
+      let item = cur.to_string()
+      if item.length() > 0 {
+        out.push(item)
         cur = StringBuilder()
       }
     } else if ch == ',' {
-      if cur.to_string().length() > 0 {
-        out.push(cur.to_string())
+      let item = cur.to_string()
+      if item.length() > 0 {
+        out.push(item)
         cur = StringBuilder()
       }
       out.push(",")
@@ -446,8 +448,9 @@ fn spread_list_string(s : String) -> Array[String] {
       cur.write_char(ch)
     }
   }
-  if cur.to_string().length() > 0 {
-    out.push(cur.to_string())
+  let item = cur.to_string()
+  if item.length() > 0 {
+    out.push(item)
   }
   out
 }
