@@ -77,6 +77,21 @@ jobs:
           const rows = data.results.map((r) => `| ${r.syntax.toUpperCase()} | ${r.precss_native_cli.median_ms} ms | ${r.precss_library.median_ms} ms | ${r.baseline.stats.median_ms} ms | ${r.library_speedup_x ?? '-'}x | ${r.correctness.matched}/${r.correctness.total} |`)
           process.stdout.write(['## precss 性能基准', '', `Profile：${data.profile}；数据集：${data.dataset.name}；${data.dataset.count} 份输入；总输入 ${data.dataset.actual_input_bytes.scss} bytes；深度 ${data.dataset.depth}；${data.dataset.iterations} 次采样`, '', '| 格式 | precss CLI | precss 库 | 对比实现 | 库加速比 | 正确性 |', '|---|---:|---:|---:|---:|---:|', ...rows, '', `提交：${data.commit}`].join('\\n'))
           EOF
+          node --input-type=module <<'EOF'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const data = JSON.parse(readFileSync('site/static/data/benchmark.json', 'utf8'))
+          const results = data.results.map((result) => ({
+            syntax: result.syntax,
+            precss_library_median_ms: result.precss_library?.median_ms ?? null,
+            baseline_name: result.baseline?.name ?? null,
+            baseline_median_ms: result.baseline?.stats?.median_ms ?? null,
+          }))
+          writeFileSync('site/static/data/benchmark-lite.json', JSON.stringify({
+            schema: 1,
+            generated_at: data.generated_at,
+            results,
+          }, null, 2) + '\\n')
+          EOF
 
       # 构建演示站（rabbita SSG）→ site/out（index.html + css + demo.js + codemirror/）
       - name: 构建演示站（SSG）

@@ -27,9 +27,11 @@ async fn main {
   copy_file("static/codemirror/mode/css/css.js", "out/codemirror/mode/css/css.js")
   copy_file("static/codemirror/theme/dracula.css", "out/codemirror/theme/dracula.css")
 
-  // 3) 复制性能页前端与 CI 生成的 JSON 数据
+  // 3) 复制性能页前端、首页性能摘要与 CI 生成的 JSON 数据
   copy_file("static/benchmark.js", "out/benchmark/benchmark.js")
+  copy_file("static/home.js", "out/home.js")
   copy_file("static/data/benchmark.json", "out/data/benchmark.json")
+  copy_file("static/data/benchmark-lite.json", "out/data/benchmark-lite.json")
 
   // 4) 渲染首页与性能页 -> out（rabbit SSR）
   let home = @rabbita.new(fn() { home_page() })

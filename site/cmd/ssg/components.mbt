@@ -90,9 +90,34 @@ fn lang_group(names : Array[String]) -> @html.Html {
   el("div", "lang-group", names.map(lang_button))
 }
 
+fn data_el(
+  tag : String,
+  class_ : String,
+  data_name : String,
+  data_value : String,
+  children : Array[@html.Html],
+) -> @html.Html {
+  @html.node(
+    tag,
+    @html.Attrs::build().class(class_).data_set(data_name, data_value),
+    children,
+  )
+}
+
 fn site_head(title_ : String, stylesheets : Array[String]) -> @html.Html {
   plain("head", [@html.title([txt(title_)])] +
     stylesheets.map(stylesheet => resource_link(stylesheet, "stylesheet")))
+}
+
+fn page_heading(title_ : String, subtitle_ : String) -> @html.Html {
+  el("div", "page-heading", [
+    el("h1", "site-title", [txt(title_)]),
+    el("p", "site-sub", [txt(subtitle_)]),
+  ])
+}
+
+fn site_card(class_ : String, children : Array[@html.Html]) -> @html.Html {
+  el("section", "site-card " + class_, children)
 }
 
 fn site_header(prefix : String, show_back : Bool) -> @html.Html {
@@ -113,7 +138,9 @@ fn site_header(prefix : String, show_back : Bool) -> @html.Html {
   } else {
     [el("nav", "site-nav", nav)]
   }
-  el("header", "site-header", [link(prefix + "#", "site-logo", "precss")] + actions)
+  el("header", "site-header", [
+    el("div", "site-header-inner", [link(prefix + "#", "site-logo", "PreCSS")] + actions),
+  ])
 }
 
 fn site_footer(prefix : String) -> @html.Html {
@@ -155,29 +182,28 @@ fn benchmark_page() -> @rabbita.Val[@html.Html] {
   let (state, _emit) : (@rabbita.Val[Unit], @rabbita.Emit[Unit]) = @rabbita.create_pure_state((), update=(model, _msg) => model)
   state.view(_model => {
     site_shell(
-      "precss 性能比较",
+      "PreCSS 性能比较",
       ["../site.css?v=4"],
       "site-dark benchmark-page",
       "../",
       true,
       el("main", "benchmark-main", [
-          el("h1", "site-title benchmark-title", [txt("性能比较")]),
-          el("p", "site-sub benchmark-sub", [
-            txt("用可复现的数据，看看 precss 在共同支持语法子集上的表现"),
+          el("div", "benchmark-heading", [
+            page_heading("性能比较", "用可复现的数据，看看 PreCSS 在共同支持语法子集上的表现"),
           ]),
-          el("section", "benchmark-card", [
+          site_card("benchmark-card", [
             plain("h2", [txt("最近一次基准结果")]),
             el_id("div", "benchmark-results", "", [
               el("p", "benchmark-loading", [txt("正在加载基准数据……")]),
             ]),
           ]),
-          el("section", "benchmark-card benchmark-method", [
+          site_card("benchmark-card benchmark-method", [
             plain("h2", [txt("测试方法")]),
             plain("p", [txt("基准使用 manifest 描述的固定 profile，由同一棵确定性随机规则树生成 SCSS、缩进式 SASS 和 LESS 输入。每份输入先与对比实现进行归一化正确性校验，只有双方输出一致的数据才计入性能结果。")]),
-            plain("p", [txt("当前结果衡量批量吞吐量：precss CLI 每次采样启动一个 native CLI，通过 NUL 分隔批量编译；precss 库数据来自同一 native 进程内部的编译阶段计时；Dart Sass 与 less.js 在同一 Node.js 进程内循环调用 API。页面同时展示精确 bytes、友好单位、UTC/本地时间和独立峰值 RSS。结果受输入、版本、硬件和系统负载影响，不代表所有项目中的固定加速比。")]),
+            plain("p", [txt("当前结果衡量批量吞吐量：PreCSS CLI 每次采样启动一个 native CLI，通过 NUL 分隔批量编译；PreCSS 库数据来自同一 native 进程内部的编译阶段计时；Dart Sass 与 less.js 在同一 Node.js 进程内循环调用 API。页面同时展示精确 bytes、友好单位、UTC/本地时间和独立峰值 RSS。结果受输入、版本、硬件和系统负载影响，不代表所有项目中的固定加速比。")]),
             el("p", "benchmark-warning", [txt("注意：Dart Sass 对比项是 sass npm 包的 JavaScript API，不是 Dart Sass 原生 CLI；SASS 入口当前先转换为 SCSS 再编译。")]),
           ]),
-          el("section", "benchmark-card benchmark-reproduce", [
+          site_card("benchmark-card benchmark-reproduce", [
             plain("h2", [txt("本地复现")]),
             plain("pre", [txt("pnpm install\npnpm run bench:release")]),
             plain("p", [
@@ -193,6 +219,22 @@ fn benchmark_page() -> @rabbita.Val[@html.Html] {
   })
 }
 
+fn performance_group(label : String, baseline : String) -> @html.Html {
+  data_el("div", "performance-group", "syntax", label.to_lower(), [
+    el("div", "performance-group-title", [txt("# " + label.to_lower())]),
+    data_el("span", "performance-name performance-name-precss", "role", "precss", [
+      txt("PreCSS"),
+      el("span", "performance-time", [txt(" · -- ms")]),
+    ]),
+    el("span", "performance-bar performance-bar-precss", []),
+    data_el("span", "performance-name performance-name-baseline", "role", "baseline", [
+      txt(baseline),
+      el("span", "performance-time", [txt(" · -- ms")]),
+    ]),
+    el("span", "performance-bar performance-bar-baseline", []),
+  ])
+}
+
 fn home_page() -> @rabbita.Val[@html.Html] {
   let (state, _emit) : (@rabbita.Val[Unit], @rabbita.Emit[Unit]) = @rabbita.create_pure_state((), update=(model, _msg) => model)
   state.view(_model => {
@@ -203,16 +245,31 @@ fn home_page() -> @rabbita.Val[@html.Html] {
       "",
       false,
       plain("main", [
-          el("h1", "site-title", [txt("precss")]),
-          el("p", "site-sub", [txt("MoonBit 实现的 CSS 预处理引擎")]),
-          link("#docs", "site-cta", "快速开始"),
-          el("p", "site-note", [txt("左边编辑器用 CodeMirror 实现着色；右侧不是")]),
+          el("section", "home-intro", [
+            el("div", "home-hero-column", [
+              site_card("home-hero", [
+                el("p", "home-eyebrow", [txt("MOONBIT · CSS PREPROCESSOR")]),
+                page_heading("PreCSS", "MoonBit 实现的 CSS 预处理引擎"),
+                link("#docs", "site-cta", "快速开始"),
+              ]),
+            ]),
+            el("aside", "site-card performance-teaser performance-teaser-loading", [
+              plain("h2", [txt("性能概览")]),
+              el("p", "performance-teaser-note", [txt("正在加载基准摘要……")]),
+              performance_group("SCSS", "dart-scss"),
+              performance_group("SASS", "dart-sass"),
+              performance_group("LESS", "less.js"),
+              link("benchmark/", "performance-teaser-link", "查看完整基准"),
+            ]),
+          ]),
+          el("p", "site-note home-note", [txt("左边编辑器用 CodeMirror 实现着色；右侧不是")]),
           editor(),
         ]),
       [
         resource_script("./codemirror/lib/codemirror.js", None),
         resource_script("./codemirror/mode/css/css.js", None),
         resource_script("./demo.js?v=4", Some("module")),
+        resource_script("./home.js", Some("module")),
       ],
     )
   })

@@ -10,6 +10,13 @@ $cta-bg: #7c3aed;
 $cta-text: #ffffff;
 $note: #6a6570;
 
+.site-card {
+  background: linear-gradient(145deg, #342b50 0%, $code-head 72%);
+  border: 1px solid #4a3d68;
+  border-radius: 0.55rem;
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.18);
+}
+
 .site-dark {
   background: $bg;
   color: $text;
@@ -18,19 +25,174 @@ $note: #6a6570;
 }
 
 .site-header {
+  border-bottom: 1px solid #2e2745;
+}
+.site-header-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.9rem 2rem;
-  border-bottom: 1px solid #2e2745;
+  width: min(100% - 2rem, 1200px);
+  min-height: 3.4rem;
+  margin: 0 auto;
 }
 .site-logo { color: $title; font-weight: 800; font-size: 1.15rem; }
 .site-logo,
 .site-nav a,
 .site-footer a { text-decoration: none; }
-.site-nav { display: none; }
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
 .site-nav a { color: $text; }
 .site-nav a:hover { color: #fff; }
+
+.home-intro {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 2rem;
+  width: min(100% - 2rem, 1200px);
+  margin: 3rem auto 1.25rem;
+
+  .home-hero-column {
+    display: flex;
+    min-width: 0;
+  }
+
+  .home-hero {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    padding: 2.35rem 2rem 2rem;
+    text-align: left;
+
+    &::before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0.25rem;
+      height: 100%;
+      background: linear-gradient(180deg, #c084fc, #7c3aed);
+      content: "";
+    }
+
+    .home-eyebrow {
+      margin: 0 0 0.9rem;
+      color: #c084fc;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+    }
+
+    .site-title {
+      margin-top: 0;
+      text-align: left;
+    }
+    .site-sub { text-align: left; }
+    .site-cta { margin: 1.8rem 0 0; }
+  }
+
+  .performance-teaser {
+    padding: 1.4rem 1.35rem 1.25rem;
+
+    h2 {
+      margin: 0;
+      color: $sub;
+      font-size: 1.05rem;
+    }
+
+    .performance-teaser-note {
+      margin: 0.45rem 0 1rem;
+      color: $note;
+      font-size: 0.75rem;
+    }
+
+    .performance-group {
+      display: grid;
+      grid-template-columns: minmax(8rem, 0.42fr) minmax(0, 1fr);
+      grid-template-rows: auto auto auto;
+      column-gap: 0.7rem;
+      row-gap: 0.22rem;
+      align-items: center;
+      margin: 0.85rem 0;
+
+      .performance-group-title {
+        grid-column: 1 / -1;
+        color: #c084fc;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .performance-name {
+        display: flex;
+        align-items: baseline;
+        min-width: 0;
+        color: $sub;
+        font-size: 0.72rem;
+        line-height: 1.35;
+        white-space: nowrap;
+
+        .performance-time {
+          margin-left: 0.2rem;
+          color: $note;
+          font-size: 0.64rem;
+        }
+      }
+
+      .performance-bar {
+        display: block;
+        align-self: center;
+        width: var(--bar-width, 88%);
+        height: 0.62rem;
+        border-radius: 9999px;
+        transform-origin: left center;
+        transform: scaleX(0);
+      }
+    }
+
+    &.performance-teaser-ready {
+      .performance-bar { animation: performance-bar-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+      .performance-group:nth-child(3) .performance-bar { animation-delay: 0.06s; }
+      .performance-group:nth-child(4) .performance-bar { animation-delay: 0.14s; }
+      .performance-group:nth-child(5) .performance-bar { animation-delay: 0.22s; }
+    }
+
+    &.performance-teaser-loading .performance-bar { visibility: hidden; }
+    &.is-fallback .performance-teaser-note { color: $note; }
+
+    .performance-bar-precss {
+      --bar-width: 52%;
+      background: linear-gradient(90deg, #8b5cf6, #c084fc);
+    }
+    .performance-bar-baseline {
+      --bar-width: 88%;
+      background: #75658f;
+    }
+    .performance-teaser-link {
+      display: inline-block;
+      margin-top: 0.35rem;
+      color: $title;
+      font-size: 0.78rem;
+      text-decoration: none;
+
+      &:hover { color: #fff; }
+    }
+  }
+}
+
+@keyframes performance-bar-rise {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .performance-teaser.performance-teaser-ready .performance-bar {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
 
 .site-title {
   color: $title;
@@ -152,7 +314,7 @@ $note: #6a6570;
   grid-template-rows: auto auto;
   gap: 0;
   width: 100%;
-  max-width: 960px;
+  max-width: 1200px;
   margin: 2rem auto;
   border: 1px solid $code-border;
   border-radius: 0.35rem;
@@ -245,7 +407,8 @@ $note: #6a6570;
 .tok-str { color: #a5f3a5; }
 
 /* CTA 下方的灰色小字（玩梗，不显眼但看得清） */
-.site-note { font-size: 0.8rem; color: $note; text-align: center; margin-top: 0.2rem; }
+.site-note { font-size: 0.8rem; color: $note; text-align: center; margin: 0.65rem auto 0.2rem; }
+.home-note { width: min(100% - 2rem, 1200px); }
 .site-note code { color: #8b8494; }
 
 /* 输入侧 overlay：textarea 透明文字 + mirror 高亮，滚动同步 */
@@ -373,24 +536,27 @@ $note: #6a6570;
 .lang-group { display: flex; gap: 0.5rem; align-items: center; }
 
 @media (max-width: 700px) {
+  .home-intro {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .home-hero { padding: 1.6rem 1.25rem 1.45rem; }
   .site-editor { grid-template-columns: 1fr; }
   .engine-control { top: 0; }
   .vars-bar-top { width: 100%; flex-wrap: wrap; }
 }
 
 .benchmark-page {
-  .site-header { max-width: 1100px; margin: 0 auto; }
+  .site-header-inner { width: min(100% - 2rem, 960px); }
   .benchmark-back { color: $sub; text-decoration: none; font-size: 0.9rem; }
   .benchmark-back:hover { color: #fff; }
   .benchmark-main { width: min(100% - 2rem, 960px); margin: 0 auto 4rem; }
-  .benchmark-title { margin-top: 3.2rem; margin-bottom: 0.4rem; }
-  .benchmark-sub { margin-bottom: 2rem; }
+  .benchmark-heading .site-title { margin-top: 3.2rem; margin-bottom: 0.4rem; }
+  .benchmark-heading .site-sub { margin-bottom: 2rem; }
   .benchmark-card {
     margin: 1.2rem 0;
     padding: 1.35rem;
-    background: $code-head;
-    border: 1px solid $code-border;
-    border-radius: 0.45rem;
     overflow-x: auto;
   }
   .benchmark-card h2 { margin: 0 0 0.9rem; color: $sub; font-size: 1.05rem; }
