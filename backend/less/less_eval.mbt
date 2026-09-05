@@ -5,8 +5,8 @@
 /// 不复用 SCSS 引擎——语义按 LESS 自带规则。
 
 priv struct Env {
-  vars : Array[(String, Array[String])]
-  mixins : Array[(String, (Array[String], Array[LessNode]))]
+  vars : Map[String, Array[String]]
+  mixins : Map[String, (Array[String], Array[LessNode])]
   parent : Env?
 }
 
@@ -20,16 +20,16 @@ pub fn eval_less(nodes : Array[LessNode], read : ((String) -> String raise @core
 
 ///| 收集一个块内浅层变量（最后定义覆盖）与 mixin 定义
 fn new_scope(nodes : Array[LessNode], parent : Env?) -> Env {
-  let mut vars : Array[(String, Array[String])] = []
-  let mut mixins : Array[(String, (Array[String], Array[LessNode]))] = []
+  let vars : Map[String, Array[String]] = Map([])
+  let mixins : Map[String, (Array[String], Array[LessNode])] = Map([])
   for node in nodes {
     match node {
       VarDef(name, val) => {
         // 同名后定义覆盖（LESS 最后定义优先）
-        vars = overwrite_var(vars, name, val)
+        vars[name] = val
       }
       MixinDef(name, params, body) => {
-        mixins = overwrite_mixin(mixins, name, params, body)
+        mixins[name] = (params, body)
       }
       _ => ()
     }
@@ -37,62 +37,25 @@ fn new_scope(nodes : Array[LessNode], parent : Env?) -> Env {
   { vars, mixins, parent }
 }
 
-fn overwrite_var(
-  vars : Array[(String, Array[String])],
-  name : String,
-  val : Array[String],
-) -> Array[(String, Array[String])] {
-  let rs : Array[(String, Array[String])] = []
-  for v in vars {
-    if v.0 == name {
-      continue
-    }
-    rs.push(v)
-  }
-  rs.push((name, val))
-  rs
-}
-
-fn overwrite_mixin(
-  mixins : Array[(String, (Array[String], Array[LessNode]))],
-  name : String,
-  params : Array[String],
-  body : Array[LessNode],
-) -> Array[(String, (Array[String], Array[LessNode]))] {
-  let rs : Array[(String, (Array[String], Array[LessNode]))] = []
-  for m in mixins {
-    if m.0 == name {
-      continue
-    }
-    rs.push(m)
-  }
-  rs.push((name, (params, body)))
-  rs
-}
-
 ///| 变量查找（最近作用域优先）
 fn lookup_var(env : Env, name : String) -> Array[String]? {
-  for v in env.vars {
-    if v.0 == name {
-      return Some(v.1)
+  match env.vars.get(name) {
+    Some(value) => Some(value)
+    None => match env.parent {
+      None => None
+      Some(p) => lookup_var(p, name)
     }
-  }
-  match env.parent {
-    None => None
-    Some(p) => lookup_var(p, name)
   }
 }
 
 ///| mixin 查找（最近作用域优先）
 fn lookup_mixin(env : Env, name : String) -> (Array[String], Array[LessNode])? {
-  for m in env.mixins {
-    if m.0 == name {
-      return Some(m.1)
+  match env.mixins.get(name) {
+    Some(value) => Some(value)
+    None => match env.parent {
+      None => None
+      Some(p) => lookup_mixin(p, name)
     }
-  }
-  match env.parent {
-    None => None
-    Some(p) => lookup_mixin(p, name)
   }
 }
 
@@ -314,17 +277,17 @@ fn combine_selector(parent : String, sel : Array[String]) -> String {
 
 ///| 把实参绑定到形参（同名 @ 前缀），生成参数作用域
 fn bind_params(env : Env, params : Array[String], args : Array[String]) -> Env {
-  let vars : Array[(String, Array[String])] = []
+  let vars : Map[String, Array[String]] = Map([])
   for i in 0 ..< params.length() {
     let p = params[i]
     let (pname, pdef) = split_param(p)
     if i < args.length() && args[i].length() > 0 {
-      vars.push((pname, split_args(args[i])))
+      vars[pname] = split_args(args[i])
     } else if pdef.length() > 0 {
-      vars.push((pname, split_args(pdef)))
+      vars[pname] = split_args(pdef)
     }
   }
-  { vars, mixins: [], parent: Some(env) }
+  { vars, mixins: Map([]), parent: Some(env) }
 }
 
 ///| 拆分参数项：`@name` 或 `@name: default` → (name, default)
