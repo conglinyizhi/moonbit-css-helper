@@ -310,6 +310,13 @@ fn split_args(s : String) -> Array[String] {
 
 ///| 求值一个值 token 序列：替换 @var + 合并数字运算
 fn eval_value(toks : Array[String], env : Env) -> String {
+  // 单 token 普通值无需变量解析或运算折叠。
+  if toks.length() == 1 {
+    let t = toks[0]
+    if t.length() == 0 || t[0] != '@' {
+      return t
+    }
+  }
   let resolved : Array[String] = toks.map(fn(t) { resolve_at(t, env) })
   merge_math(resolved)
 }
