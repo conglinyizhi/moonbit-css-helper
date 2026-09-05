@@ -1,4 +1,5 @@
 const root = document.querySelector('#benchmark-results')
+const testRoot = document.querySelector('#test-results')
 
 function text(value) {
   return document.createTextNode(String(value))
@@ -148,17 +149,68 @@ function render(data) {
   appendMeta(data)
 }
 
+function renderTests(data) {
+  testRoot.replaceChildren()
+  const summary = document.createElement('p')
+  summary.className = 'benchmark-summary'
+  summary.append(text(`${data.passed || 0}/${data.total || 0} 个测试通过 · 失败 ${data.failed || 0} · 提交 ${data.commit || '-'}`))
+  testRoot.append(summary)
+  const table = document.createElement('table')
+  table.className = 'benchmark-table'
+  const head = document.createElement('thead')
+  const headRow = document.createElement('tr')
+  for (const label of ['测试套件', '通过', '失败', '状态']) headRow.append(cell(label, 'benchmark-th'))
+  head.append(headRow)
+  table.append(head)
+  const body = document.createElement('tbody')
+  for (const suite of data.suites || []) {
+    const tr = document.createElement('tr')
+    const passed = suite.passed || 0
+    const failed = suite.failed || 0
+    const ok = suite.status === 'passed'
+    tr.append(cell(suite.name || suite.suite || '-'))
+    tr.append(cell(`${passed}/${suite.total || 0}`, ok ? 'benchmark-valid' : 'benchmark-invalid'))
+    tr.append(cell(String(failed), failed === 0 ? 'benchmark-valid' : 'benchmark-invalid'))
+    tr.append(cell(ok ? '通过' : '失败', ok ? 'benchmark-valid' : 'benchmark-invalid'))
+    body.append(tr)
+  }
+  table.append(body)
+  testRoot.append(table)
+  const note = document.createElement('p')
+  note.className = 'benchmark-note'
+  note.append(text('这里展示仓库中已纳入 CI 的测试：MoonBit 单元测试，以及使用 Dart Sass / less.js 作 oracle 的 SCSS、SASS、LESS 差分测试。大规模性能数据仍见上方基准结果。'))
+  testRoot.append(note)
+}
+
+async function loadJson(path) {
+  const response = await fetch(path, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
+
 async function loadBenchmark() {
   try {
-    const response = await fetch('../data/benchmark.json', { cache: 'no-store' })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    render(await response.json())
+    const [benchmark, tests] = await Promise.all([
+      loadJson('../data/benchmark.json'),
+      loadJson('../data/tests.json'),
+    ])
+    render(benchmark)
+    renderTests(tests)
   } catch (error) {
-    root.replaceChildren()
-    const message = document.createElement('p')
-    message.className = 'benchmark-error'
-    message.append(text('基准数据暂时无法加载，请查看 GitHub Actions 或本地复现命令。'))
-    root.append(message)
+    if (root) {
+      root.replaceChildren()
+      const message = document.createElement('p')
+      message.className = 'benchmark-error'
+      message.append(text('基准数据暂时无法加载，请查看 GitHub Actions 或本地复现命令。'))
+      root.append(message)
+    }
+    if (testRoot) {
+      testRoot.replaceChildren()
+      const message = document.createElement('p')
+      message.className = 'benchmark-error'
+      message.append(text('测试结果暂时无法加载，请查看 GitHub Actions。'))
+      testRoot.append(message)
+    }
     console.error('[precss] benchmark data unavailable:', error)
   }
 }

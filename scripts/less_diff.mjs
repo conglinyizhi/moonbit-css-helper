@@ -3,12 +3,19 @@
 // 用例来自 test/less_cases/*.less（单文件）；moonbit 侧用 cmd/compile_less 批量编译。
 import less from 'less'
 import { execFileSync } from 'node:child_process'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join, basename } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
-const MB_BIN = join(root, '_build/native/debug/build/cmd/cli/cli.exe')
-const casesDir = process.argv[2] || join(root, 'test/less_cases')
+const MB_BIN = process.env.PRECSS_CLI || join(root, '_build/native/debug/build/cmd/cli/cli.exe')
+const jsonIndex = process.argv.indexOf('--json')
+const jsonPath = jsonIndex >= 0 ? process.argv[jsonIndex + 1] : null
+const positional = process.argv.slice(2).filter((arg, index, args) => {
+  if (arg === '--json') return false
+  if (index > 0 && args[index - 1] === '--json') return false
+  return !arg.startsWith('--')
+})
+const casesDir = positional[0] || join(root, 'test/less_cases')
 const BATCH = 40
 
 function collect(dir) {
@@ -84,3 +91,20 @@ console.log(`一致     : ${pass}`)
 console.log(`不一致   : ${diff}`)
 console.log(`moonbit 报错(less.js 可编译): ${mbErr}`)
 console.log(`less.js 也无法编译(跳过)    : ${oracleErr}`)
+
+const report = {
+  schema: 1,
+  suite: 'less-diff',
+  oracle: { name: 'less.js', package: 'less', api: 'render' },
+  cases_dir: casesDir,
+  total: cases.length,
+  passed: pass,
+  failed: diff + mbErr,
+  mismatches: diff,
+  moonbit_errors: mbErr,
+  oracle_errors: oracleErr,
+  included: pass,
+  failures: shown.map((entry) => ({ detail: entry })),
+}
+if (jsonPath) writeFileSync(jsonPath, JSON.stringify(report, null, 2) + '\n')
+if (diff > 0 || mbErr > 0) process.exitCode = 1

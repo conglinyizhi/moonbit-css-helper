@@ -156,16 +156,19 @@ JSON 会记录提交、profile、精确输入/输出 bytes、采样统计、版�
 
 ## 差分测试（质量背书）
 
+- **MoonBit 单元测试**：`moon test --target native`，覆盖核心 API、SCSS 和 LESS 后端。
 - **scss / sass**：dart-sass oracle（`scripts/diff.mjs`），用例来自 `test/cases` + 上游 `sass-spec`。
 - **less**：less.js oracle（`scripts/less_diff.mjs`），用例来自 `test/less_cases`。
 
 ```bash
+moon test --target native
 node scripts/diff.mjs                            # scss/sass 自带 cases
 node scripts/diff.mjs test/sass-spec/spec/variables
 node scripts/less_diff.mjs                       # less 自带 cases
+pnpm run test:report                             # 汇总三套结果并生成 site/static/data/tests.json
 ```
 
-差分报告见 `test/spec-gap.md`（通过率、已支持特性、归档的 deep-water）。
+性能页的“测试验证”区块展示 `test:report` 生成的三套结果；差分报告见 `test/spec-gap.md`（通过率、已支持特性、归档的 deep-water）。
 
 ## Compiler 全栈嵌合指南
 
