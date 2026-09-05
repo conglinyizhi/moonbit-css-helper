@@ -43,10 +43,6 @@ jobs:
       - name: 安装 Node 依赖
         run: pnpm install --frozen-lockfile
 
-      - name: 构建 precss native CLI
-        run: |
-          MOON_CC=clang MOON_AR=ar MOON_LD=clang moon build --target native cmd/cli
-
       - name: 运行性能基准并生成 JSON
         run: |
           pnpm run bench:release | tee benchmark.log
