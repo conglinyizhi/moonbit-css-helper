@@ -30,7 +30,6 @@ async fn main {
   // 3) 复制性能页前端与 CI 生成的 JSON 数据
   copy_file("static/benchmark.js", "out/benchmark/benchmark.js")
   copy_file("static/data/benchmark.json", "out/data/benchmark.json")
-  copy_file("static/data/tests.json", "out/data/tests.json")
 
   // 4) 渲染首页与性能页 -> out（rabbit SSR）
   let home = @rabbita.new(fn() { home_page() })

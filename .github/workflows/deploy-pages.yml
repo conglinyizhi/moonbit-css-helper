@@ -77,16 +77,6 @@ jobs:
           process.stdout.write(['## precss 性能基准', '', `Profile：${data.profile}；数据集：${data.dataset.name}；${data.dataset.count} 份输入；总输入 ${data.dataset.actual_input_bytes.scss} bytes；深度 ${data.dataset.depth}；${data.dataset.iterations} 次采样`, '', '| 格式 | precss CLI | precss 库 | 对比实现 | 库加速比 | 正确性 |', '|---|---:|---:|---:|---:|---:|', ...rows, '', `提交：${data.commit}`].join('\\n'))
           EOF
 
-      - name: 运行测试并生成 JSON
-        run: |
-          pnpm run test:report | tee tests.log
-          node --input-type=module <<'EOF' >> "$GITHUB_STEP_SUMMARY"
-          import { readFileSync } from 'node:fs'
-          const data = JSON.parse(readFileSync('site/static/data/tests.json', 'utf8'))
-          const rows = data.suites.map((suite) => `| ${suite.name} | ${suite.passed}/${suite.total} | ${suite.failed} | ${suite.status === 'passed' ? '✅' : '❌'} |`)
-          process.stdout.write(['## precss 测试验证', '', '| 测试套件 | 通过 | 失败 | 状态 |', '|---|---:|---:|---:|', ...rows, '', `总计：${data.passed}/${data.total}，失败：${data.failed}`, `提交：${data.commit}`].join('\\n'))
-          EOF
-
       # 构建演示站（rabbita SSG）→ site/out（index.html + css + demo.js + codemirror/）
       - name: 构建演示站（SSG）
         working-directory: site

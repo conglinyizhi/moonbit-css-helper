@@ -171,12 +171,6 @@ fn benchmark_page() -> @rabbita.Val[@html.Html] {
               el("p", "benchmark-loading", [txt("正在加载基准数据……")]),
             ]),
           ]),
-          el("section", "benchmark-card", [
-            plain("h2", [txt("测试验证")]),
-            el_id("div", "test-results", "", [
-              el("p", "benchmark-loading", [txt("正在加载测试结果……")]),
-            ]),
-          ]),
           el("section", "benchmark-card benchmark-method", [
             plain("h2", [txt("测试方法")]),
             plain("p", [txt("基准使用 manifest 描述的固定 profile，由同一棵确定性随机规则树生成 SCSS、缩进式 SASS 和 LESS 输入。每份输入先与对比实现进行归一化正确性校验，只有双方输出一致的数据才计入性能结果。")]),

@@ -1,5 +1,4 @@
 const root = document.querySelector('#benchmark-results')
-const testRoot = document.querySelector('#test-results')
 
 function text(value) {
   return document.createTextNode(String(value))
@@ -13,7 +12,8 @@ function cell(value, className = '') {
 }
 
 function formatMs(value) {
-  return `${Number(value).toFixed(3)} ms`
+  const ms = Number(value)
+  return Number.isFinite(ms) ? `${ms.toFixed(3)} ms` : '-'
 }
 
 function formatBytes(value) {
@@ -113,10 +113,17 @@ function render(data) {
   const benchmark = data.benchmark || {}
   const dataset = data.dataset || {}
   const rows = data.results || []
+  const hasLibraryTiming = rows.length > 0 && rows.every((row) => Number.isFinite(Number(row.precss_library?.median_ms)))
   const summary = document.createElement('p')
   summary.className = 'benchmark-summary'
   summary.append(text(`${dataset.count || benchmark.count || 0} 份输入 · 总规模 ${formatBytes(dataset.actual_input_bytes?.scss || benchmark.input_bytes)} · 深度 ${dataset.depth} · ${dataset.iterations} 次采样 · 正确性按份校验`))
   root.append(summary)
+  if (!hasLibraryTiming) {
+    const warning = document.createElement('p')
+    warning.className = 'benchmark-warning'
+    warning.append(text('当前 benchmark 数据未包含纯库编译耗时，可能是旧版数据。请重新运行 pnpm run bench:release。'))
+    root.append(warning)
+  }
 
   const table = document.createElement('table')
   table.className = 'benchmark-table'
@@ -133,7 +140,7 @@ function render(data) {
     const baselineStats = baseline.stats || {}
     tr.append(cell(row.syntax?.toUpperCase() || '-'))
     tr.append(cell(`${formatBytes(row.input_bytes)}\n${formatBytes(row.output_bytes)}`, 'benchmark-size'))
-    tr.append(cell(`${formatMs(row.precss_native_cli?.median_ms || 0)} / ${formatMs(row.precss_library?.median_ms || 0)}`))
+    tr.append(cell(`${formatMs(row.precss_native_cli?.median_ms)} / ${formatMs(row.precss_library?.median_ms)}`))
     tr.append(cell(`${baseline.name || '-'} · ${formatMs(baselineStats.median_ms || 0)}`))
     tr.append(cell(valid && row.library_speedup_x ? `${row.library_speedup_x}×` : '未计入', valid ? 'benchmark-speedup' : 'benchmark-invalid'))
     tr.append(cell(`${row.correctness?.matched || 0}/${row.correctness?.total || 0}`, valid ? 'benchmark-valid' : 'benchmark-invalid'))
@@ -149,39 +156,6 @@ function render(data) {
   appendMeta(data)
 }
 
-function renderTests(data) {
-  testRoot.replaceChildren()
-  const summary = document.createElement('p')
-  summary.className = 'benchmark-summary'
-  summary.append(text(`${data.passed || 0}/${data.total || 0} 个测试通过 · 失败 ${data.failed || 0} · 提交 ${data.commit || '-'}`))
-  testRoot.append(summary)
-  const table = document.createElement('table')
-  table.className = 'benchmark-table'
-  const head = document.createElement('thead')
-  const headRow = document.createElement('tr')
-  for (const label of ['测试套件', '通过', '失败', '状态']) headRow.append(cell(label, 'benchmark-th'))
-  head.append(headRow)
-  table.append(head)
-  const body = document.createElement('tbody')
-  for (const suite of data.suites || []) {
-    const tr = document.createElement('tr')
-    const passed = suite.passed || 0
-    const failed = suite.failed || 0
-    const ok = suite.status === 'passed'
-    tr.append(cell(suite.name || suite.suite || '-'))
-    tr.append(cell(`${passed}/${suite.total || 0}`, ok ? 'benchmark-valid' : 'benchmark-invalid'))
-    tr.append(cell(String(failed), failed === 0 ? 'benchmark-valid' : 'benchmark-invalid'))
-    tr.append(cell(ok ? '通过' : '失败', ok ? 'benchmark-valid' : 'benchmark-invalid'))
-    body.append(tr)
-  }
-  table.append(body)
-  testRoot.append(table)
-  const note = document.createElement('p')
-  note.className = 'benchmark-note'
-  note.append(text('这里展示仓库中已纳入 CI 的测试：MoonBit 单元测试、使用 Dart Sass / less.js 作 oracle 的 SCSS / SASS / LESS 差分测试，以及 release profile 的大批量 benchmark 正确性。性能耗时仍见上方基准结果。'))
-  testRoot.append(note)
-}
-
 async function loadJson(path) {
   const response = await fetch(path, { cache: 'no-store' })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -190,12 +164,8 @@ async function loadJson(path) {
 
 async function loadBenchmark() {
   try {
-    const [benchmark, tests] = await Promise.all([
-      loadJson('../data/benchmark.json'),
-      loadJson('../data/tests.json'),
-    ])
+    const benchmark = await loadJson('../data/benchmark.json')
     render(benchmark)
-    renderTests(tests)
   } catch (error) {
     if (root) {
       root.replaceChildren()
@@ -203,13 +173,6 @@ async function loadBenchmark() {
       message.className = 'benchmark-error'
       message.append(text('基准数据暂时无法加载，请查看 GitHub Actions 或本地复现命令。'))
       root.append(message)
-    }
-    if (testRoot) {
-      testRoot.replaceChildren()
-      const message = document.createElement('p')
-      message.className = 'benchmark-error'
-      message.append(text('测试结果暂时无法加载，请查看 GitHub Actions。'))
-      testRoot.append(message)
     }
     console.error('[precss] benchmark data unavailable:', error)
   }
