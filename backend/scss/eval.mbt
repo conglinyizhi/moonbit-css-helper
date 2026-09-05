@@ -359,8 +359,9 @@ fn expand_for(
   let b = to_int(resolve(to, env))
   let out : Array[Node] = []
   let mut i = a
+  let uses_var = nodes_contain_var(body, v)
   while i < b {
-    let sub = substitute_var(body, v, i.to_string())
+    let sub = if uses_var { substitute_var(body, v, i.to_string()) } else { body }
     for s in sub {
       out.push(s)
     }
@@ -379,9 +380,11 @@ fn expand_each(
   let out : Array[Node] = []
   let list_src = deref_each_list(list, env)
   if vars.length() == 1 {
+    let uses_var = nodes_contain_var(body, vars[0])
     for group in split_on_commas(list_src) {
       let val = resolve(group, env)
-      for s in substitute_var(body, vars[0], val) {
+      let sub = if uses_var { substitute_var(body, vars[0], val) } else { body }
+      for s in sub {
         out.push(s)
       }
     }
@@ -391,7 +394,9 @@ fn expand_each(
       let mut k = 0
       while k < vars.length() && k < group.length() {
         let val = resolve([group[k]], env)
-        b = substitute_var(b, vars[k], val)
+        if nodes_contain_var(b, vars[k]) {
+          b = substitute_var(b, vars[k], val)
+        }
         k += 1
       }
       for s in b {
@@ -572,6 +577,39 @@ fn split_on_commas(toks : Array[String]) -> Array[Array[String]] {
   }
   groups.push(cur)
   groups
+}
+
+fn nodes_contain_var(nodes : Array[Node], v : String) -> Bool {
+  for n in nodes {
+    if node_contains_var(n, v) {
+      return true
+    }
+  }
+  false
+}
+
+fn node_contains_var(n : Node, v : String) -> Bool {
+  match n {
+    Decl(_, value) => toks_contain_var(value, v)
+    RuleSet(sel, body) => toks_contain_var(sel, v) || nodes_contain_var(body, v)
+    If(cond, tb, eb) => toks_contain_var(cond, v) || nodes_contain_var(tb, v) || nodes_contain_var(eb, v)
+    MixinCall(_, args, content) => toks_contain_var(args, v) || nodes_contain_var(content, v)
+    For(_, from, to, body) => toks_contain_var(from, v) || toks_contain_var(to, v) || nodes_contain_var(body, v)
+    Each(vars, list, body) => toks_contain_var(vars, v) || toks_contain_var(list, v) || nodes_contain_var(body, v)
+    While(cond, body) => toks_contain_var(cond, v) || nodes_contain_var(body, v)
+    AtRule(_, prelude, body) => toks_contain_var(prelude, v) || nodes_contain_var(body, v)
+    _ => false
+  }
+}
+
+fn toks_contain_var(toks : Array[String], v : String) -> Bool {
+  let interp = "#{" + v + "}"
+  for t in toks {
+    if t == v || t == interp || t.contains(interp) || t.contains(v) {
+      return true
+    }
+  }
+  false
 }
 
 fn substitute_var(nodes : Array[Node], v : String, val : String) -> Array[Node] {
