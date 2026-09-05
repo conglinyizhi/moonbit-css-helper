@@ -665,6 +665,13 @@ fn to_int(s : String) -> Int {
 
 ///| 变量替换 + 值拼接
 fn resolve(toks : Array[String], env : Env) -> String {
+  // 单 token 的普通值无需经过 StringBuilder，直接复用原 token。
+  if toks.length() == 1 {
+    let t = toks[0]
+    if !t.contains("$") && !t.contains("#{") && !is_op(t) && !is_paren(t) {
+      return t
+    }
+  }
   // 普通 CSS 值不需要变量、插值或表达式处理，跳过中间数组与算术折叠。
   if can_fast_resolve(toks) {
     return join_value_tokens(toks)
