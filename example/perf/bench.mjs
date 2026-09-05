@@ -22,7 +22,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { join } from 'node:path'
 
 const root = new URL('../..', import.meta.url).pathname
-const CLI = join(root, '_build/native/debug/build/cmd/cli/cli.exe')
+const CLI = process.env.PRECSS_CLI || join(root, '_build/native/debug/build/cmd/cli/cli.exe')
 const manifestPath = join(root, 'example/perf/datasets/manifest.json')
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const knownValueFlags = new Set(['--profile', '--count', '--depth', '--seed', '--iterations', '--warmup', '--json'])

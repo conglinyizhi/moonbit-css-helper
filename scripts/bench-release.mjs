@@ -5,7 +5,8 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
-const env = { ...process.env, MOON_CC: 'clang', MOON_AR: 'ar', MOON_LD: 'clang' }
+const cli = join(root, '_build/native/release/build/cmd/cli/cli.exe')
+const env = { ...process.env, MOON_CC: 'clang', MOON_AR: 'ar', MOON_LD: 'clang', PRECSS_CLI: cli }
 const run = (command, args, options = {}) => execFileSync(command, args, {
   cwd: root,
   env,
@@ -14,7 +15,7 @@ const run = (command, args, options = {}) => execFileSync(command, args, {
 })
 
 mkdirSync(join(root, 'site/static/data'), { recursive: true })
-run('moon', ['build', '--target', 'native', 'cmd/cli'])
+run('moon', ['build', '--release', '--strip', '--target', 'native', 'cmd/cli'])
 run(process.execPath, [
   'example/perf/bench.mjs',
   '--profile', 'release',
