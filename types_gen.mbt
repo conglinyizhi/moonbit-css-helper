@@ -5,7 +5,7 @@
 /// → 生成 `pub fn xxx() -> String { "xxx" }`。第三方在 build/SSG 里调用，写盘成 .mbt。
 pub fn generate_types(source : String) -> String {
   let css = try compile(source) catch { _ => "" }
-  let classes = @backend_scss.extract_classes_scss(css)
+  let classes = @scss.extract_classes_scss(css)
   gen_type_wrapper(classes)
 }
 

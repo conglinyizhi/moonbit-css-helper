@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "conglinyizhi/precss/backend_css"
+package "conglinyizhi/precss/backend/css"
 
 import {
   "conglinyizhi/precss/core",

@@ -77,7 +77,7 @@ test "sass indent compile" {
 
 ///| conflict: sass_to_scss 中间产物（供后端白盒参考）
 test "sass to scss" {
-  inspect(@backend_scss.sass_to_scss("$c: blue\n.box\n  color: $c\n"), content=(
+  inspect(@scss.sass_to_scss("$c: blue\n.box\n  color: $c\n"), content=(
     #|$c: blue;
     #|.box {
     #|color: $c;

@@ -116,9 +116,9 @@ test {
 
 ## 引擎（各自独立，可插拔）
 
-- **`backend_scss`** — SCSS / **SASS（缩进语法）** 独立引擎：变量+作用域（`!default/!global`）、嵌套、`&`、mixin（默认/变参/`@content`）、`@if/@else if/@while/@for/@each`(多变量)、比较/逻辑运算、`+` 字符串连接、裸括号吸收、选择器/值插值、`@import` 内联、`@media` 透传、`@warn/@debug/@error` 忽略。SASS 缩进语法经 `sass_to_scss` 子集转换后复用同引擎。
-- **`backend_less`** — **独立 LESS 引擎**（不复用 SCSS 引擎）：变量 **lazy 作用域**（最后定义优先、可用后定义）、嵌套 `&`、类 mixin（`.name()` 定义 / 调用 / 分离 `.name;` / 参数默认值 / `;` 分隔参数 / **类混入**）、基础运算、`@media` 透传、`@import` 内联、**同名同值重复声明去重**（保留最后一次出现，对齐 less.js）。
-- **`backend_css`** — CSS 透传。
+- **`backend/scss`** — SCSS / **SASS（缩进语法）** 独立引擎：变量+作用域（`!default/!global`）、嵌套、`&`、mixin（默认/变参/`@content`）、`@if/@else if/@while/@for/@each`(多变量)、比较/逻辑运算、`+` 字符串连接、裸括号吸收、选择器/值插值、`@import` 内联、`@media` 透传、`@warn/@debug/@error` 忽略。SASS 缩进语法经 `sass_to_scss` 子集转换后复用同引擎。
+- **`backend/less`** — **独立 LESS 引擎**（不复用 SCSS 引擎）：变量 **lazy 作用域**（最后定义优先、可用后定义）、嵌套 `&`、类 mixin（`.name()` 定义 / 调用 / 分离 `.name;` / 参数默认值 / `;` 分隔参数 / **类混入**）、基础运算、`@media` 透传、`@import` 内联、**同名同值重复声明去重**（保留最后一次出现，对齐 less.js）。
+- **`backend/css`** — CSS 透传。
 
 > less 曾用「转换级适配」（`less_to_scss` 转成 scss 再复用 SCSS 引擎），但 less 与 scss 语义独立（lazy 作用域 / 类 mixin / 去重），转换级存在 82% 天花板（深层嵌套/变量作用域必然失配），因此拆为独立引擎。
 

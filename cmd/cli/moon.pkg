@@ -1,7 +1,7 @@
 import {
   "conglinyizhi/precss" @mb,
-  "conglinyizhi/precss/backend_scss" @scss,
-  "conglinyizhi/precss/backend_less" @less,
+  "conglinyizhi/precss/backend/scss" @scss,
+  "conglinyizhi/precss/backend/less" @less,
   "moonbitlang/core/env" @env,
   "moonbitlang/core/json" @json,
   "conglinyizhi/toml" @toml,

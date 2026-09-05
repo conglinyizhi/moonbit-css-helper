@@ -1,7 +1,7 @@
 ///| SCSS 子集的黑盒测试
 
 fn compile(src : String) -> String {
-  @backend_scss.to_css(@backend_scss.parse_sheet(@backend_scss.tokenize(src)))
+  @scss.to_css(@scss.parse_sheet(@scss.tokenize(src)))
 }
 
 test "variable" {
@@ -89,7 +89,7 @@ test "import" {
       raise @core.CompileError::EngineFailed(engine="test", message="missing: " + path)
     }
   }
-  inspect(@backend_scss.compile_with_imports("@import \"a\"; body { color: red; }", read), content=(
+  inspect(@scss.compile_with_imports("@import \"a\"; body { color: red; }", read), content=(
     #|.x {
     #|  color: blue;
     #|}
