@@ -168,7 +168,7 @@ node scripts/less_diff.mjs                       # less 自带 cases
 pnpm run test:report                             # 汇总三套结果并生成 site/static/data/tests.json
 ```
 
-性能页的“测试验证”区块展示 `test:report` 生成的三套结果；差分报告见 `test/spec-gap.md`（通过率、已支持特性、归档的 deep-water）。
+性能页的“测试验证”区块展示 `test:report` 生成的常规测试与 release profile 大批量 benchmark 正确性结果；差分报告见 `test/spec-gap.md`（通过率、已支持特性、归档的 deep-water）。
 
 ## Compiler 全栈嵌合指南
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 汇总现有测试套件，生成可发布的机器可读结果。
-// 覆盖 MoonBit 单元测试、SCSS 差分测试和 LESS 差分测试。
+// 覆盖 MoonBit 单元测试、SCSS 差分测试、LESS 差分测试和已生成的大批量 benchmark 正确性。
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -79,7 +79,37 @@ const lessPath = join(tempDir, 'less-diff.json')
 const scss = diffSuite('scripts/diff.mjs', scssPath)
 const less = diffSuite('scripts/less_diff.mjs', lessPath)
 rmSync(tempDir, { recursive: true, force: true })
+function benchmarkSuite() {
+  const path = join(root, 'site/static/data/benchmark.json')
+  try {
+    const data = readJson(path)
+    const results = data.results || []
+    const total = results.reduce((n, result) => n + (result.correctness?.total || 0), 0)
+    const passed = results.reduce((n, result) => n + (result.correctness?.matched || 0), 0)
+    const failed = total - passed
+    return {
+      suite: 'benchmark-correctness',
+      name: '大批量 benchmark 正确性',
+      total, passed, failed,
+      status: failed === 0 && results.length > 0 ? 'passed' : 'failed',
+      profile: data.profile,
+      dataset: data.dataset,
+      cases: results.map((result) => ({
+        syntax: result.syntax,
+        matched: result.correctness?.matched || 0,
+        total: result.correctness?.total || 0,
+        included: result.correctness?.included === true,
+      })),
+      command: 'pnpm run bench:release',
+    }
+  } catch {
+    return null
+  }
+}
+
 const suites = [moon, scss, less]
+const large = benchmarkSuite()
+if (large) suites.push(large)
 const total = suites.reduce((n, suite) => n + suite.total, 0)
 const passed = suites.reduce((n, suite) => n + suite.passed, 0)
 const failed = suites.reduce((n, suite) => n + suite.failed, 0)

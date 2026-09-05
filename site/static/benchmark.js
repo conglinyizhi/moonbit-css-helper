@@ -178,7 +178,7 @@ function renderTests(data) {
   testRoot.append(table)
   const note = document.createElement('p')
   note.className = 'benchmark-note'
-  note.append(text('这里展示仓库中已纳入 CI 的测试：MoonBit 单元测试，以及使用 Dart Sass / less.js 作 oracle 的 SCSS、SASS、LESS 差分测试。大规模性能数据仍见上方基准结果。'))
+  note.append(text('这里展示仓库中已纳入 CI 的测试：MoonBit 单元测试、使用 Dart Sass / less.js 作 oracle 的 SCSS / SASS / LESS 差分测试，以及 release profile 的大批量 benchmark 正确性。性能耗时仍见上方基准结果。'))
   testRoot.append(note)
 }
 
