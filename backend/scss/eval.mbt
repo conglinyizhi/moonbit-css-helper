@@ -465,6 +465,17 @@ fn gen_while(
 
 ///| 把选择器数组里的插值 `#{$var}` 求值后 join
 fn join_resolved(selectors : Array[String], env : Env) -> String {
+  // 常规选择器没有插值时直接复用数组 join，跳过逐项扫描和临时数组。
+  let mut has_interp = false
+  for s in selectors {
+    if s.contains("#{") {
+      has_interp = true
+      break
+    }
+  }
+  if !has_interp {
+    return selectors.join(", ")
+  }
   let parts : Array[String] = []
   for s in selectors {
     parts.push(resolve_sel_interp(s, env))
@@ -474,6 +485,9 @@ fn join_resolved(selectors : Array[String], env : Env) -> String {
 
 ///| 对选择器字符串里的 `#{$var}` 插值求值
 fn resolve_sel_interp(s : String, env : Env) -> String {
+  if !s.contains("#{") {
+    return s
+  }
   let mut out = s
   let mut changed = true
   while changed {
