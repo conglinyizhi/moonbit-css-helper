@@ -1,0 +1,12 @@
+import {
+  "moonbit-community/rabbita/server" @rabbita_server,
+  "hackwaly/moonback",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")

@@ -5,6 +5,8 @@
 ///   styles/site.scss      → 本库 compile_scss → out/site.css    （深色 landing landing 样式）
 ///   rabbit 渲染 home_page → out/index.html（深色 + 黄标题 + 双栏实时编译）
 ///
+/// PRECSS_SITE_OUT=public 可供 Warren 开发服务器写入独立的临时静态目录。
+///
 #warnings("-alert_experimental")
 async fn main {
   // 1) 编译 tailwind.scss -> out/tailwind.css
@@ -13,25 +15,27 @@ async fn main {
   // 2) 编译 site.scss -> out/site.css（深色 landing）
   let site_scss = try read_text("styles/site.scss") catch { _ => "" }
   let site_css = try @css.compile_scss(site_scss) catch { _ => "" }
-  try @fs.mkdir("out", recursive = true) catch { _ => () }
-  try @fs.write_file("out/tailwind.css", tw_css) catch { _ => () }
-  try @fs.write_file("out/site.css", site_css) catch { _ => () }
+  let output_dir = @env.get_env_var("PRECSS_SITE_OUT").unwrap_or("out")
+  let output = (name : String) => output_dir + "/" + name
+  try @fs.mkdir(output_dir, recursive = true) catch { _ => () }
+  try @fs.write_file(output("tailwind.css"), tw_css) catch { _ => () }
+  try @fs.write_file(output("site.css"), site_css) catch { _ => () }
 
   // 复制前端逻辑（CodeMirror 初始化 + 实时编译）到 out/demo.js
   let demo = try read_text("static/demo.js") catch { _ => "" }
-  try @fs.write_file("out/demo.js", demo) catch { _ => () }
+  try @fs.write_file(output("demo.js"), demo) catch { _ => () }
 
   // 本地打包 CodeMirror 5（不依赖运行时 CDN）——复制到 out/codemirror/
-  copy_file("static/codemirror/lib/codemirror.js", "out/codemirror/lib/codemirror.js")
-  copy_file("static/codemirror/lib/codemirror.css", "out/codemirror/lib/codemirror.css")
-  copy_file("static/codemirror/mode/css/css.js", "out/codemirror/mode/css/css.js")
-  copy_file("static/codemirror/theme/dracula.css", "out/codemirror/theme/dracula.css")
+  copy_file("static/codemirror/lib/codemirror.js", output("codemirror/lib/codemirror.js"))
+  copy_file("static/codemirror/lib/codemirror.css", output("codemirror/lib/codemirror.css"))
+  copy_file("static/codemirror/mode/css/css.js", output("codemirror/mode/css/css.js"))
+  copy_file("static/codemirror/theme/dracula.css", output("codemirror/theme/dracula.css"))
 
   // 3) 复制性能页前端、首页性能摘要与 CI 生成的 JSON 数据
-  copy_file("static/benchmark.js", "out/benchmark/benchmark.js")
-  copy_file("static/home.js", "out/home.js")
-  copy_file("static/data/benchmark.json", "out/data/benchmark.json")
-  copy_file("static/data/benchmark-lite.json", "out/data/benchmark-lite.json")
+  copy_file("static/benchmark.js", output("benchmark/benchmark.js"))
+  copy_file("static/home.js", output("home.js"))
+  copy_file("static/data/benchmark.json", output("data/benchmark.json"))
+  copy_file("static/data/benchmark-lite.json", output("data/benchmark-lite.json"))
 
   // 4) 渲染首页与性能页 -> out（rabbit SSR）
   let home = @rabbita.new(fn() { home_page() })
@@ -45,9 +49,9 @@ async fn main {
   // rabbit SSR 的 <head> 默认不带 charset，补一个避免中文/特殊字符按默认编码乱码
   let home_with_cs = home_html.replace(old="<head>", new="<head><meta charset=\"utf-8\">")
   let benchmark_with_cs = benchmark_html.replace(old="<head>", new="<head><meta charset=\"utf-8\">")
-  try @fs.write_file("out/index.html", home_with_cs) catch { _ => () }
-  try @fs.mkdir("out/benchmark", recursive = true) catch { _ => () }
-  try @fs.write_file("out/benchmark/index.html", benchmark_with_cs) catch { _ => () }
+  try @fs.write_file(output("index.html"), home_with_cs) catch { _ => () }
+  try @fs.mkdir(output("benchmark"), recursive = true) catch { _ => () }
+  try @fs.write_file(output("benchmark/index.html"), benchmark_with_cs) catch { _ => () }
 }
 
 ///| 读文件为 utf8 文本（SSG 容错：失败返回空串）

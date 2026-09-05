@@ -10,5 +10,6 @@ node_modules/
 
 # SSG 产物
 site/out/
+site/public/
 site/static/data/benchmark.json
 site/static/data/benchmark-lite.json

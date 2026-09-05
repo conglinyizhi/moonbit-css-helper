@@ -5,7 +5,8 @@
   "scripts": {
     "diff": "node scripts/diff.mjs",
     "bench": "node example/perf/bench.mjs --profile quick",
-    "bench:release": "node scripts/bench-release.mjs"
+    "bench:release": "node scripts/bench-release.mjs",
+    "site:dev": "node scripts/site-dev.mjs"
   },
   "devDependencies": {
     "less": "^4.9.1",

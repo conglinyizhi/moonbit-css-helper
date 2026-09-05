@@ -65,10 +65,22 @@ pub fn text_red(self : TW) -> TW { self.add("text-red") }
 
 ## 构建
 
+生产静态构建仍由 SSG 完成：
+
 ```bash
 cd site && moon run cmd/ssg
 # 产出 out/index.html（rabbit SSR 完整 HTML）+ out/tailwind.css（本库编译）
 ```
+
+本地开发使用 Warren 提供 HTTP、文件监听和浏览器自动刷新。首次使用前安装 Warren：
+
+```bash
+moon install moonbit-community/warren
+pnpm run site:dev
+# 打开 http://127.0.0.1:8111
+```
+
+开发命令会将 SSG 产物写入被忽略的 `site/public/`，由 `cmd/server` 通过 Rabbita server 提供；生产仍写入 `site/out/`，两条链路互不覆盖。
 
 > `tw/tw.mbt` 是生成产物；改 `styles/tailwind.scss` 后用 `gen-types` 重新生成即可。
 
