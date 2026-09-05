@@ -12,18 +12,17 @@
 
 ///| 判断源码是否为 sass 缩进语法（无花括号 + 有缩进行）
 pub fn is_sass_indent(source : String) -> Bool {
-  if source.contains("{") || source.contains("}") {
-    return false
-  }
-  let lines = source.split("\n")
-  let mut has_indent = false
-  for line in lines {
-    if line.length() > 0 && (line[0] == ' ' || line[0] == '\t') {
-      has_indent = true
-      break
+  let mut line_start = true
+  for c in source {
+    if c == '{' || c == '}' {
+      return false
     }
+    if line_start && (c == ' ' || c == '\t') {
+      return true
+    }
+    line_start = c == '\n'
   }
-  has_indent
+  false
 }
 
 ///| 把 sass 缩进语法转成 scss
