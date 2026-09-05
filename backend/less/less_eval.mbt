@@ -13,7 +13,9 @@ priv struct Env {
 ///| 顶层求值入口：返回 css 字符串
 pub fn eval_less(nodes : Array[LessNode], read : ((String) -> String raise @core.CompileError)?) -> String {
   let env = new_scope(nodes, None)
-  gen_block(nodes, "", env, read)
+  let sb = StringBuilder()
+  ignore(gen_block(nodes, "", env, read, sb))
+  sb.to_string()
 }
 
 ///| 收集一个块内浅层变量（最后定义覆盖）与 mixin 定义
@@ -100,16 +102,16 @@ fn gen_block(
   parent : String,
   env : Env,
   read : ((String) -> String raise @core.CompileError)?,
-) -> String {
-  let sb = StringBuilder()
+  sb : StringBuilder,
+) -> Bool {
+  let mut wrote = false
   for node in nodes {
-    let s = gen_node(node, parent, env, read)
-    if s.trim().length() > 0 {
-      sb.write_string(s)
+    if gen_node(node, parent, env, read, sb) {
       sb.write_string("\n")
+      wrote = true
     }
   }
-  sb.to_string()
+  wrote
 }
 
 ///| 生成单个节点（当前选择器 parent）：RuleSet 提升为独立规则
@@ -118,16 +120,26 @@ fn gen_node(
   parent : String,
   env : Env,
   read : ((String) -> String raise @core.CompileError)?,
-) -> String {
+  sb : StringBuilder,
+) -> Bool {
   match node {
-    VarDef(_, _) => ""
-    MixinDef(_, _, _) => ""
-    Decl(prop, val) => "  " + prop + ": " + eval_value(val, env) + ";\n"
-    RuleSet(sel, body) => gen_rule(combine_selector(parent, sel), body, env, read)
-    AtRule(name, prelude, body) => gen_at_rule(name, prelude, body, parent, env, read)
-    Import(path) => gen_import(path, parent, env, read)
-    MixinCall(_, _) => ""
-    Raw(text) => text + "\n"
+    VarDef(_, _) | MixinDef(_, _, _) | MixinCall(_, _) => false
+    Decl(prop, val) => {
+      sb.write_string("  ")
+      sb.write_string(prop)
+      sb.write_string(": ")
+      sb.write_string(eval_value(val, env))
+      sb.write_string(";\n")
+      true
+    }
+    RuleSet(sel, body) => gen_rule(combine_selector(parent, sel), body, env, read, sb)
+    AtRule(name, prelude, body) => gen_at_rule(name, prelude, body, parent, env, read, sb)
+    Import(path) => gen_import(path, parent, env, read, sb)
+    Raw(text) => {
+      sb.write_string(text)
+      sb.write_string("\n")
+      text.trim().length() > 0
+    }
   }
 }
 
@@ -137,24 +149,30 @@ fn gen_rule(
   body : Array[LessNode],
   env : Env,
   read : ((String) -> String raise @core.CompileError)?,
-) -> String {
+  sb : StringBuilder,
+) -> Bool {
   let child_env = new_scope(body, Some(env))
-  let decls = gen_block_decls(body, child_env, read)
-  let lifted = gen_block_lifted(body, full, child_env, read)
-  let head = if decls.trim().length() > 0 {
-    full + " {\n" + decls + "}\n"
-  } else {
-    ""
+  let decls = gen_block_decls(body, child_env)
+  if decls.length() > 0 {
+    sb.write_string(full)
+    sb.write_string(" {\n")
+    for decl in decls {
+      sb.write_string("  ")
+      sb.write_string(decl.0)
+      sb.write_string(": ")
+      sb.write_string(decl.1)
+      sb.write_string(";\n")
+    }
+    sb.write_string("}\n")
   }
-  head + lifted
+  gen_block_lifted(body, full, child_env, read, sb) || decls.length() > 0
 }
 
 ///| 当前块的声明（含 mixin 混入）；同名同值去重，保留最后一次出现（对齐 less.js）
 fn gen_block_decls(
   nodes : Array[LessNode],
   env : Env,
-  _read : ((String) -> String raise @core.CompileError)?,
-) -> String {
+) -> Array[(String, String)] {
   let out : Array[(String, String)] = []
   collect_decls(nodes, env, out)
   // 保留最后一次出现：从后往前收集，再逆序输出
@@ -170,14 +188,13 @@ fn gen_block_decls(
     }
     k = k - 1
   }
-  let sb = StringBuilder()
+  let result : Array[(String, String)] = []
   let mut m = rev.length() - 1
   while m >= 0 {
-    let (p, v) = rev[m]
-    sb.write_string("  " + p + ": " + v + ";\n")
+    result.push(rev[m])
     m = m - 1
   }
-  sb.to_string()
+  result
 }
 
 fn collect_decls(nodes : Array[LessNode], env : Env, out : Array[(String, String)]) -> Unit {
@@ -210,26 +227,33 @@ fn gen_block_lifted(
   full : String,
   env : Env,
   read : ((String) -> String raise @core.CompileError)?,
-) -> String {
-  let sb = StringBuilder()
+  sb : StringBuilder,
+) -> Bool {
+  let mut wrote = false
   for node in nodes {
     match node {
-      RuleSet(sel, body) => sb.write_string(gen_rule(combine_selector(full, sel), body, env, read))
+      RuleSet(sel, body) => {
+        if gen_rule(combine_selector(full, sel), body, env, read, sb) { wrote = true }
+      }
       MixinCall(name, args) => {
         match lookup_mixin(env, name) {
           Some((params, body)) => {
             let penv = bind_params(env, params, args)
-            sb.write_string(gen_block_lifted(body, full, penv, read))
+            if gen_block_lifted(body, full, penv, read, sb) { wrote = true }
           }
           None => ()
         }
       }
-      AtRule(name, prelude, body) => sb.write_string(gen_at_rule(name, prelude, body, full, env, read))
-      Import(path) => sb.write_string(gen_import(path, full, env, read))
+      AtRule(name, prelude, body) => {
+        if gen_at_rule(name, prelude, body, full, env, read, sb) { wrote = true }
+      }
+      Import(path) => {
+        if gen_import(path, full, env, read, sb) { wrote = true }
+      }
       _ => ()
     }
   }
-  sb.to_string()
+  wrote
 }
 
 ///| @media 等 at-rule
@@ -240,10 +264,18 @@ fn gen_at_rule(
   parent : String,
   env : Env,
   read : ((String) -> String raise @core.CompileError)?,
-) -> String {
+  sb : StringBuilder,
+) -> Bool {
   let pre = eval_value(prelude, env)
   let child_env = new_scope(body, Some(env))
-  "@" + name + " " + pre + " {\n" + gen_block(body, parent, child_env, read) + "}\n"
+  sb.write_string("@")
+  sb.write_string(name)
+  sb.write_string(" ")
+  sb.write_string(pre)
+  sb.write_string(" {\n")
+  ignore(gen_block(body, parent, child_env, read, sb))
+  sb.write_string("}\n")
+  true
 }
 
 ///| @import 内联
@@ -252,14 +284,15 @@ fn gen_import(
   parent : String,
   env : Env,
   read : ((String) -> String raise @core.CompileError)?,
-) -> String {
+  sb : StringBuilder,
+) -> Bool {
   match read {
-    None => ""
+    None => false
     Some(f) => {
       let imported = try f(path) catch { _ => "" }
       let nodes = parse_less(@scss.tokenize(imported))
       let child_env = new_scope(nodes, Some(env))
-      gen_block(nodes, parent, child_env, read)
+      gen_block(nodes, parent, child_env, read, sb)
     }
   }
 }
