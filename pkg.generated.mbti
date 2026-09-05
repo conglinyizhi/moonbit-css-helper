@@ -6,19 +6,31 @@ import {
 }
 
 // Values
-pub fn compile(String) -> String raise @core.RabbitaError
+pub fn compile(String) -> String raise @core.CompileError
 
-pub fn compile_css(String) -> String raise @core.RabbitaError
+pub fn compile_css(String) -> String raise @core.CompileError
 
-pub fn compile_file(String, (String) -> String raise @core.RabbitaError) -> String raise @core.RabbitaError
+pub fn compile_file(String, (String) -> String raise @core.CompileError) -> String raise @core.CompileError
 
-pub fn compile_input(@core.Input) -> String raise @core.RabbitaError
+pub fn compile_input(@core.Input) -> String raise @core.CompileError
 
-pub fn compile_less(String) -> String raise @core.RabbitaError
+pub fn compile_less(String) -> String raise @core.CompileError
 
-pub fn compile_scss(String) -> String raise @core.RabbitaError
+pub fn compile_less_with_vars(String, Map[String, String]) -> String raise @core.CompileError
 
-pub fn compile_with_format(String, @core.Format) -> String raise @core.RabbitaError
+pub fn compile_many(Array[@core.Input], (String) -> String raise @core.CompileError) -> String raise @core.CompileError
+
+pub fn compile_scss(String) -> String raise @core.CompileError
+
+pub fn compile_scss_with_vars(String, Map[String, String]) -> String raise @core.CompileError
+
+pub fn compile_sources(Array[String]) -> String raise @core.CompileError
+
+pub fn compile_with_format(String, @core.Format) -> String raise @core.CompileError
+
+pub fn generate_types(String) -> String
+
+pub fn minify_css(String) -> String
 
 // Errors
 

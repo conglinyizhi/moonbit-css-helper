@@ -8,21 +8,34 @@ import {
 // Values
 
 // Errors
-pub(all) suberror RabbitaError {
+pub(all) suberror CompileError {
   NoEngine(Format)
   EngineFailed(engine~ : String, message~ : String)
+  UnsupportedSyntax(String)
 } derive(@debug.Debug)
-pub impl Show for RabbitaError
+pub impl Show for CompileError
 
 // Types and methods
+pub struct Compiler {
+  engines : Array[Engine]
+}
+pub fn Compiler::compile(Self, String) -> String raise CompileError
+pub fn Compiler::compile_file(Self, String, (String) -> String raise CompileError) -> String raise CompileError
+pub fn Compiler::compile_input(Self, Input) -> String raise CompileError
+pub fn Compiler::compile_many(Self, Array[Input], (String) -> String raise CompileError) -> String raise CompileError
+pub fn Compiler::compile_with_format(Self, String, Format) -> String raise CompileError
+pub fn Compiler::new(Array[Engine]) -> Self
+
 pub struct Engine {
   name_fn : () -> String
   supports_fn : (Format) -> Bool
-  compile_fn : (String) -> String raise RabbitaError
+  compile_fn : (String) -> String raise CompileError
+  compile_imports_fn : (String, (String) -> String raise CompileError) -> String raise CompileError
 }
-pub fn Engine::compile(Self, String) -> String raise RabbitaError
+pub fn Engine::compile(Self, String) -> String raise CompileError
+pub fn Engine::compile_imports(Self, String, (String) -> String raise CompileError) -> String raise CompileError
 pub fn Engine::engine_name(Self) -> String
-pub fn Engine::new(name~ : () -> String, supports~ : (Format) -> Bool, compile~ : (String) -> String raise RabbitaError) -> Self
+pub fn Engine::new(name~ : () -> String, supports~ : (Format) -> Bool, compile~ : (String) -> String raise CompileError, compile_imports~ : (String, (String) -> String raise CompileError) -> String raise CompileError) -> Self
 pub fn Engine::supports(Self, Format) -> Bool
 
 pub(all) enum Format {
@@ -36,16 +49,8 @@ pub impl Show for Format
 pub(all) enum Input {
   Source(String)
   SourceWithFormat(String, Format)
+  File(String)
 } derive(Eq, @debug.Debug)
-
-pub struct Rabbita {
-  engines : Array[Engine]
-}
-pub fn Rabbita::compile(Self, String) -> String raise RabbitaError
-pub fn Rabbita::compile_file(Self, String, (String) -> String raise RabbitaError) -> String raise RabbitaError
-pub fn Rabbita::compile_input(Self, Input) -> String raise RabbitaError
-pub fn Rabbita::compile_with_format(Self, String, Format) -> String raise RabbitaError
-pub fn Rabbita::new(Array[Engine]) -> Self
 
 // Type aliases
 

@@ -1082,8 +1082,8 @@ fn tokenize_str(s : String) -> Array[String] {
 ///| 编译一段可能包含 `@import` 的源码
 pub fn compile_with_imports(
   source : String,
-  read : (String) -> String raise @core.RabbitaError,
-) -> String raise @core.RabbitaError {
+  read : (String) -> String raise @core.CompileError,
+) -> String raise @core.CompileError {
   let nodes = parse_sheet(tokenize(source))
   let resolved = walk_imports(nodes, read, [])
   to_css(resolved)
@@ -1092,9 +1092,9 @@ pub fn compile_with_imports(
 ///| 递归展开 import 节点（顶层）
 fn walk_imports(
   nodes : Array[Node],
-  read : (String) -> String raise @core.RabbitaError,
+  read : (String) -> String raise @core.CompileError,
   visited : Array[String],
-) -> Array[Node] raise @core.RabbitaError {
+) -> Array[Node] raise @core.CompileError {
   let out : Array[Node] = []
   for n in nodes {
     match n {
@@ -1122,9 +1122,9 @@ fn walk_imports(
 ///| 递归深入嵌套块，处理其中的 @import
 fn walk_into(
   n : Node,
-  read : (String) -> String raise @core.RabbitaError,
+  read : (String) -> String raise @core.CompileError,
   visited : Array[String],
-) -> Node raise @core.RabbitaError {
+) -> Node raise @core.CompileError {
   match n {
     RuleSet(sel, body) => RuleSet(sel, walk_imports(body, read, visited))
     If(cond, tb, eb) => If(cond, walk_imports(tb, read, visited), walk_imports(eb, read, visited))

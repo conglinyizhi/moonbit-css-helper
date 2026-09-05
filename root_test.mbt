@@ -29,7 +29,7 @@ test "compile 自动识别格式" {
 ///|
 
 test "compile many" {
-  let read = fn(p : String) -> String raise @core.RabbitaError {
+  let read = fn(p : String) -> String raise @core.CompileError {
     if p == "a" { "$c: red; .x { color: $c; }" } else { "" }
   }
   inspect(@precss.compile_many(
@@ -123,6 +123,17 @@ test "compile_scss_with_vars 注入预置变量" {
 test "compile_scss_with_vars 注入多变量" {
   let css = try @precss.compile_scss_with_vars(".a { margin: $gap; color: $c; }", Map::of([("gap", "8px"), ("c", "blue")])) catch { _ => "" }
   inspect(css, content=".a {\n  margin: 8px;\n  color: blue;\n}\n")
+}
+
+///| 对称的 LESS 变量注入入口
+test "compile_less_with_vars 注入变量" {
+  let css = try @precss.compile_less_with_vars(".a { color: @c; }", Map::of([("c", "red")])) catch { _ => "" }
+  inspect(css, content=".a {\n  color: red;\n}\n\n")
+}
+
+///| 多源码片段的轻量入口
+test "compile_sources" {
+  inspect(@precss.compile_sources(["a { color: red; }", "b { color: blue; }"]), content="a { color: red; }\nb { color: blue; }")
 }
 
 ///| 保守压缩：去块注释/空白/换行，字符串值原样保留

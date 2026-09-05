@@ -1,12 +1,12 @@
 ///| 预处理引擎句柄
 ///
 /// 每个后端构造一个 `Engine`，用函数闭包承载其行为。这是「可插拔契约」的载体：
-/// 门面 `Rabbita` 只依赖 `Engine` 的 `supports` / `compile`，不关心是哪个后端。
+/// 门面 `Compiler` 只依赖 `Engine` 的 `supports` / `compile`，不关心是哪个后端。
 pub struct Engine {
   name_fn : () -> String
   supports_fn : (Format) -> Bool
-  compile_fn : (String) -> String raise RabbitaError
-  compile_imports_fn : (String, (String) -> String raise RabbitaError) -> String raise RabbitaError
+  compile_fn : (String) -> String raise CompileError
+  compile_imports_fn : (String, (String) -> String raise CompileError) -> String raise CompileError
 }
 
 ///| 构造一个引擎
@@ -15,8 +15,8 @@ pub struct Engine {
 pub fn Engine::new(
   name~ : () -> String,
   supports~ : (Format) -> Bool,
-  compile~ : (String) -> String raise RabbitaError,
-  compile_imports~ : (String, (String) -> String raise RabbitaError) -> String raise RabbitaError,
+  compile~ : (String) -> String raise CompileError,
+  compile_imports~ : (String, (String) -> String raise CompileError) -> String raise CompileError,
 ) -> Engine {
   { name_fn: name, supports_fn: supports, compile_fn: compile, compile_imports_fn: compile_imports }
 }
@@ -32,7 +32,7 @@ pub fn Engine::supports(self : Engine, fmt : Format) -> Bool {
 }
 
 ///| 把源码编译为 CSS
-pub fn Engine::compile(self : Engine, source : String) -> String raise RabbitaError {
+pub fn Engine::compile(self : Engine, source : String) -> String raise CompileError {
   (self.compile_fn)(source)
 }
 
@@ -40,8 +40,8 @@ pub fn Engine::compile(self : Engine, source : String) -> String raise RabbitaEr
 pub fn Engine::compile_imports(
   self : Engine,
   source : String,
-  read : (String) -> String raise RabbitaError,
-) -> String raise RabbitaError {
+  read : (String) -> String raise CompileError,
+) -> String raise CompileError {
   (self.compile_imports_fn)(source, read)
 }
 
@@ -49,8 +49,8 @@ pub fn Engine::compile_imports(
 
 ///| 统一的编译错误
 ///
-/// 把各个后端引擎的错误统一成一种 `RabbitaError`，让调用方只需处理它。
-pub(all) suberror RabbitaError {
+/// 把各个后端引擎的错误统一成一种 `CompileError`，让调用方只需处理它。
+pub(all) suberror CompileError {
   /// 没有任何引擎负责该格式
   NoEngine(Format)
   /// 引擎在编译过程中失败
@@ -60,7 +60,7 @@ pub(all) suberror RabbitaError {
 } derive(Debug)
 
 ///|
-pub impl Show for RabbitaError with fn to_string(self) {
+pub impl Show for CompileError with fn to_string(self) {
   match self {
     NoEngine(fmt) => "no engine for format \{fmt}"
     EngineFailed(engine~, message~) => "\{engine} failed: \{message}"

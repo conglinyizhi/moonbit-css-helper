@@ -70,11 +70,11 @@ test {
 ## 多文件 & 灵活输入（`compile_many`）
 
 允许多个文件 / 多个 SCSS 字符串 / **混用**，并支持 `@import "path"` 内联。
-读取函数由调用方注入（`read : (path) -> String raise RabbitaError`），核心不耦合具体 IO。
+读取函数由调用方注入（`read : (path) -> String raise CompileError`），核心不耦合具体 IO。
 
 ```mbt check
 test {
-  let read = fn(p : String) -> String raise @core.RabbitaError {
+  let read = fn(p : String) -> String raise @core.CompileError {
     if p == "a.scss" { "$c: blue; .x { color: $c; }" } else { "" }
   }
   inspect(@precss.compile_many(
@@ -102,11 +102,13 @@ test {
 
 - `compile(source)` — 自动识别格式并编译
 - `compile_scss(source)` / `compile_less(source)` / `compile_css(source)` — 显式格式
+- `compile_scss_with_vars(source, vars)` / `compile_less_with_vars(source, vars)` — 显式格式 + 预置变量
+- `compile_sources(sources)` — 编译多个源码片段，不需要文件读取器
 - `compile_input(input)` — 按 `Input` 形态（`Source` / `SourceWithFormat` / `File`）
 - `compile_file(path, read)` — 编译单文件（read 注入）
 - `compile_many(inputs, read)` — 编译多个输入（`File`/`Source` 混用），逐个带 `@import` 内联后拼接
 
-统一错误 `RabbitaError`（`NoEngine` / `EngineFailed` / `UnsupportedSyntax`），所有后端引擎错误都会映射到它。多文件 `@import` 内联在 AST 层递归展开（含嵌套规则/控制流体），调用方 `read` 负责路径解析；循环 import 会被去重。
+统一错误 `@core.CompileError`（`NoEngine` / `EngineFailed` / `UnsupportedSyntax`），所有后端引擎错误都会映射到它。多文件 `@import` 内联在 AST 层递归展开（含嵌套规则/控制流体），调用方 `read` 负责路径解析；循环 import 会被去重。
 
 ## 引擎（各自独立，可插拔）
 
@@ -164,7 +166,7 @@ node scripts/less_diff.mjs                       # less 自带 cases
 
 差分报告见 `test/spec-gap.md`（通过率、已支持特性、归档的 deep-water）。
 
-## Rabbita 全栈嵌合指南
+## Compiler 全栈嵌合指南
 
 `moonbit-community/rabbita`（MoonBit 函数式 Web UI）+ `hackwaly/moonback`（Express 级后端）是 MoonBit 全栈 SSR 的生态。要在 rabbit 项目里用本库把 SCSS 编译成 CSS：
 
@@ -174,7 +176,7 @@ node scripts/less_diff.mjs                       # less 自带 cases
 
 ```mbt
 // 在 rabbit 项目（后端 cmd/server 或独立构建工具）里
-let read = fn(p : String) -> String raise @core.RabbitaError {
+let read = fn(p : String) -> String raise @core.CompileError {
   // 从构建期 scss 源码 map 读，或从文件系统读（读文件用 @fs，见下方坑）
   scss_sources.get(p) or ""
 }

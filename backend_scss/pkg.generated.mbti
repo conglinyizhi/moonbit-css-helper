@@ -3,10 +3,23 @@ package "conglinyizhi/precss/backend_scss"
 
 import {
   "conglinyizhi/precss/core",
+  "moonbitlang/core/debug",
 }
 
 // Values
+pub fn compile_with_imports(String, (String) -> String raise @core.CompileError) -> String raise @core.CompileError
+
+pub fn diagnose_scss(String) -> Array[String]
+
+pub fn extract_classes_scss(String) -> Array[String]
+
+pub fn format_scss(String) -> String
+
+pub fn is_sass_indent(String) -> Bool
+
 pub fn parse_sheet(Array[String]) -> Array[Node]
+
+pub fn sass_to_scss(String) -> String
 
 pub fn scss_engine() -> @core.Engine
 
@@ -17,23 +30,21 @@ pub fn tokenize(String) -> Array[String]
 // Errors
 
 // Types and methods
-type Env
-
-type Mixin
-
 pub(all) enum Node {
   RuleSet(Array[String], Array[Node])
   Decl(String, Array[String])
   VarDef(String, Array[String])
   MixinDef(String, Array[String], Array[Node])
-  MixinCall(String, Array[String])
+  MixinCall(String, Array[String], Array[Node])
+  Content
   If(Array[String], Array[Node], Array[Node])
   For(String, Array[String], Array[String], Array[Node])
+  Each(Array[String], Array[String], Array[Node])
+  While(Array[String], Array[Node])
+  Import(String)
   AtRule(String, Array[String], Array[Node])
   Raw(String)
-}
-
-type Parser
+} derive(@debug.Debug)
 
 // Type aliases
 

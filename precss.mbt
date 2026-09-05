@@ -8,7 +8,7 @@
 ///   inspect(compile("body { color: red; }"), content="body { color: red; }")
 /// }
 /// ```
-pub fn compile(source : String) -> String raise @core.RabbitaError {
+pub fn compile(source : String) -> String raise @core.CompileError {
   default().compile(source)
 }
 
@@ -16,25 +16,25 @@ pub fn compile(source : String) -> String raise @core.RabbitaError {
 pub fn compile_with_format(
   source : String,
   fmt : @core.Format,
-) -> String raise @core.RabbitaError {
+) -> String raise @core.CompileError {
   default().compile_with_format(source, fmt)
 }
 
 ///| 依据输入形态编译
-pub fn compile_input(input : @core.Input) -> String raise @core.RabbitaError {
+pub fn compile_input(input : @core.Input) -> String raise @core.CompileError {
   default().compile_input(input)
 }
 
 ///| 编译文件（读取函数由调用方注入）
 pub fn compile_file(
   path : String,
-  read : (String) -> String raise @core.RabbitaError,
-) -> String raise @core.RabbitaError {
+  read : (String) -> String raise @core.CompileError,
+) -> String raise @core.CompileError {
   default().compile_file(path, read)
 }
 
 ///| 以显式 SCSS 格式编译
-pub fn compile_scss(source : String) -> String raise @core.RabbitaError {
+pub fn compile_scss(source : String) -> String raise @core.CompileError {
   default().compile_with_format(source, @core.Scss)
 }
 
@@ -47,16 +47,40 @@ pub fn compile_scss(source : String) -> String raise @core.RabbitaError {
 pub fn compile_scss_with_vars(
   source : String,
   vars : Map[String, String],
-) -> String raise @core.RabbitaError {
+) -> String raise @core.CompileError {
+  compile_prefixed_vars(source, vars, prefix="$", compile_scss)
+}
+
+///| 以显式 LESS 格式编译，并注入一组预置全局变量
+pub fn compile_less_with_vars(
+  source : String,
+  vars : Map[String, String],
+) -> String raise @core.CompileError {
+  compile_prefixed_vars(source, vars, prefix="@", compile_less)
+}
+
+///| 编译多个源码片段并拼接结果
+///|
+///| 这是不需要文件读取器的轻量入口；涉及 `@import` 或文件路径时使用 `compile_many`。
+pub fn compile_sources(sources : Array[String]) -> String raise @core.CompileError {
+  sources.map(source => compile(source)).join("\n")
+}
+
+fn compile_prefixed_vars(
+  source : String,
+  vars : Map[String, String],
+  prefix~ : String,
+  compile : (String) -> String raise @core.CompileError,
+) -> String raise @core.CompileError {
   let sb = StringBuilder::new()
   vars.each(fn(k, v) {
-    sb.write_string("$")
+    sb.write_string(prefix)
     sb.write_string(k)
     sb.write_string(": ")
     sb.write_string(v)
     sb.write_string(";\n")
   })
-  compile_scss(sb.to_string() + source)
+  compile(sb.to_string() + source)
 }
 
 ///| 保守压缩 CSS：去块注释、多余空白与换行；**字符串值内的内容原样保留**
@@ -138,24 +162,24 @@ fn write_cs(sb : StringBuilder, c : UInt16) -> Unit {
 }
 
 ///| 以显式 LESS 格式编译
-pub fn compile_less(source : String) -> String raise @core.RabbitaError {
+pub fn compile_less(source : String) -> String raise @core.CompileError {
   default().compile_with_format(source, @core.Less)
 }
 
 ///| 以显式 CSS 格式编译
-pub fn compile_css(source : String) -> String raise @core.RabbitaError {
+pub fn compile_css(source : String) -> String raise @core.CompileError {
   default().compile_with_format(source, @core.Css)
 }
 
 ///| 编译多个输入（文件/字符串混用），带 @import 内联
 pub fn compile_many(
   inputs : Array[@core.Input],
-  read : (String) -> String raise @core.RabbitaError,
-) -> String raise @core.RabbitaError {
+  read : (String) -> String raise @core.CompileError,
+) -> String raise @core.CompileError {
   default().compile_many(inputs, read)
 }
 
 ///| 内置引擎组成的默认门面
-fn default() -> @core.Rabbita {
-  @core.Rabbita::new([@backend_css.css_engine(), @backend_scss.scss_engine(), @backend_less.less_engine()])
+fn default() -> @core.Compiler {
+  @core.Compiler::new([@backend_css.css_engine(), @backend_scss.scss_engine(), @backend_less.less_engine()])
 }

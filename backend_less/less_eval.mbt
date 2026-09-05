@@ -11,7 +11,7 @@ struct Env {
 }
 
 ///| 顶层求值入口：返回 css 字符串
-pub fn eval_less(nodes : Array[LessNode], read : ((String) -> String raise @core.RabbitaError)?) -> String {
+pub fn eval_less(nodes : Array[LessNode], read : ((String) -> String raise @core.CompileError)?) -> String {
   let env = new_scope(nodes, None)
   gen_block(nodes, "", env, read)
 }
@@ -99,7 +99,7 @@ fn gen_block(
   nodes : Array[LessNode],
   parent : String,
   env : Env,
-  read : ((String) -> String raise @core.RabbitaError)?,
+  read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   let sb = StringBuilder()
   for node in nodes {
@@ -117,7 +117,7 @@ fn gen_node(
   node : LessNode,
   parent : String,
   env : Env,
-  read : ((String) -> String raise @core.RabbitaError)?,
+  read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   match node {
     VarDef(_, _) => ""
@@ -136,7 +136,7 @@ fn gen_rule(
   full : String,
   body : Array[LessNode],
   env : Env,
-  read : ((String) -> String raise @core.RabbitaError)?,
+  read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   let child_env = new_scope(body, Some(env))
   let decls = gen_block_decls(body, child_env, read)
@@ -153,7 +153,7 @@ fn gen_rule(
 fn gen_block_decls(
   nodes : Array[LessNode],
   env : Env,
-  read : ((String) -> String raise @core.RabbitaError)?,
+  read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   let out : Array[(String, String)] = []
   collect_decls(nodes, env, out)
@@ -209,7 +209,7 @@ fn gen_block_lifted(
   nodes : Array[LessNode],
   full : String,
   env : Env,
-  read : ((String) -> String raise @core.RabbitaError)?,
+  read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   let sb = StringBuilder()
   for node in nodes {
@@ -239,7 +239,7 @@ fn gen_at_rule(
   body : Array[LessNode],
   parent : String,
   env : Env,
-  read : ((String) -> String raise @core.RabbitaError)?,
+  read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   let pre = eval_value(prelude, env)
   let child_env = new_scope(body, Some(env))
@@ -251,7 +251,7 @@ fn gen_import(
   path : String,
   parent : String,
   env : Env,
-  read : ((String) -> String raise @core.RabbitaError)?,
+  read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   match read {
     None => ""
