@@ -8,6 +8,7 @@ async fn main {
   match sub {
     "compile" => run_compile(args)
     "compile-less" => run_compile_less(args)
+    "bench-library" => run_bench_library(args)
     "format" => run_format(args)
     "diagnose" => run_diagnose()
     "gen-types" => run_gen_types()
@@ -27,6 +28,7 @@ fn print_help() -> Unit {
   println("subcommands:")
   println("  compile        批量编译 SCSS（stdin 以 NUL 分隔输入，NUL 分隔输出；差分 harness 协议）")
   println("  compile-less   批量编译 LESS（同上）")
+  println("  bench-library  单进程测量纯库编译阶段（支持 --scss/--sass/--less）")
   println("  format         格式化源码（stdin 输入，输出规范排版的 scss）")
   println("  diagnose       检测重复属性（stdin 输入，打印警告；无则提示）")
   println("  gen-types      从样式源提取 class，生成类型化 .mbt wrapper")
@@ -104,6 +106,39 @@ fn detect_type(src : String) -> String {
     return "less"
   }
   "scss"
+}
+
+///| 在同一个 native 进程内测量编译阶段，排除 CLI 启动与 stdin/stdout 往返
+async fn run_bench_library(args : Array[String]) -> Unit {
+  let whole = try read_stdin_all() catch {
+    e => {
+      println("MB_ERROR: read \{e}")
+      return
+    }
+  }
+  let less = args.contains("--less")
+  let sass = args.contains("--sass")
+  let sources = whole.split("\u0000").filter(fn(s) { s.trim().length() > 0 }).map(fn(s) { s.to_owned() }).to_array()
+  let start = @bench.monotonic_clock_start()
+  let outputs : Array[String] = []
+  for source in sources {
+    let css = try {
+      if less {
+        @mb.compile_less(source)
+      } else if sass {
+        @mb.compile_scss(@scss.sass_to_scss(source))
+      } else {
+        @mb.compile_scss(source)
+      }
+    } catch {
+      e => "MB_ERROR: \{e}"
+    }
+    outputs.push(css)
+  }
+  let elapsed_us = @bench.monotonic_clock_end(start)
+  let output_bytes = outputs.fold(init=0, fn(total, css) { total + css.length() })
+  let syntax = if less { "less" } else if sass { "sass" } else { "scss" }
+  println("BENCH_LIBRARY_JSON:{\"syntax\":\"\{syntax}\",\"sources\":\{sources.length()},\"elapsed_us\":\{elapsed_us},\"output_bytes\":\{output_bytes}}")
 }
 
 ///| format：stdin 输入源码，输出规范化排版；默认自动探测糖类型

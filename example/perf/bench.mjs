@@ -178,6 +178,15 @@ function moonOnce(payload, sub) {
   }).toString())
   return { ms: r.ms, parts: r.value.split('\u0000') }
 }
+function moonLibraryOnce(payload, flags) {
+  const raw = execFileSync(CLI, ['bench-library', ...flags], {
+    input: payload,
+    maxBuffer: 1 << 28,
+  }).toString().trim()
+  const line = raw.split('\n').find((x) => x.startsWith('BENCH_LIBRARY_JSON:'))
+  if (!line) throw new Error(`invalid bench-library output: ${raw}`)
+  return JSON.parse(line.slice('BENCH_LIBRARY_JSON:'.length))
+}
 function dartOnce(list, syntax = 'scss') {
   const r = now(() => list.map((s) => compileString(s, { style: 'expanded', syntax }).css))
   return { ms: r.ms, parts: r.value }
@@ -188,7 +197,7 @@ async function lessOnce(list) {
   for (const s of list) parts.push((await less.render(s)).css)
   return { ms: Number(process.hrtime.bigint() - t) / 1e6, parts }
 }
-async function sample(moonList, sub, official, officialArgs) {
+async function sample(moonList, sub, libraryFlags, official, officialArgs) {
   const payload = moonList.join('\u0000')
   let firstMoon = null
   let firstOfficial = null
@@ -197,17 +206,21 @@ async function sample(moonList, sub, official, officialArgs) {
     await official(officialArgs)
   }
   const moonSamples = []
+  const librarySamples = []
   const officialSamples = []
   for (let i = 0; i < ITERATIONS; i++) {
     const m = moonOnce(payload, sub)
+    const l = moonLibraryOnce(payload, libraryFlags)
     const o = await official(officialArgs)
     if (!firstMoon) firstMoon = m
     if (!firstOfficial) firstOfficial = o
     moonSamples.push(m.ms)
+    librarySamples.push(l.elapsed_us / 1000)
     officialSamples.push(o.ms)
   }
   return {
     moon: stats(moonSamples),
+    library: stats(librarySamples),
     official: stats(officialSamples),
     moonParts: firstMoon.parts,
     officialParts: firstOfficial.parts,
@@ -256,9 +269,9 @@ async function measurePeakRss(payload, sub) {
 async function main() {
   const runs = []
   const resources = []
-  const scss = await sample(scssList, 'compile', (xs) => Promise.resolve(dartOnce(xs)), scssList)
-  const sass = await sample(sassList, 'compile', (xs) => Promise.resolve(dartOnce(xs, 'indented')), sassList)
-  const lessRun = await sample(lessList, 'compile-less', lessOnce, lessList)
+  const scss = await sample(scssList, 'compile', ['--scss'], (xs) => Promise.resolve(dartOnce(xs)), scssList)
+  const sass = await sample(sassList, 'compile', ['--sass'], (xs) => Promise.resolve(dartOnce(xs, 'indented')), sassList)
+  const lessRun = await sample(lessList, 'compile-less', ['--less'], lessOnce, lessList)
   const add = async (name, r, baseline, inputList) => {
     const matched = verify(r.moonParts, r.officialParts)
     const valid = matched === N
@@ -268,8 +281,10 @@ async function main() {
       input_bytes: bytes(inputList),
       output_bytes: bytes(r.moonParts),
       precss_native_cli: r.moon,
+      precss_library: r.library,
       baseline: { ...baseline, stats: r.official },
       speedup_x: speedup,
+      library_speedup_x: valid ? Number((r.official.median_ms / r.library.median_ms).toFixed(3)) : null,
       correctness: { matched, total: N, included: valid },
     })
     resources.push({
@@ -316,7 +331,7 @@ async function main() {
       warmup: WARMUP,
       input_bytes: bytes(scssList),
       output_bytes: bytes(scss.moonParts),
-      measurement: 'batch throughput; one precss native CLI process per sample, JS baselines reused in the Node process',
+      measurement: 'CLI wall-clock includes one native process and stdin/stdout; precss_library measures compile stage inside one native process; JS baselines reuse the Node process',
     },
     environment: {
       node_js: process.version,
@@ -343,14 +358,14 @@ async function main() {
   result.benchmark.output_bytes = runs[0].output_bytes
   const pad = (n) => String(n).padStart(10)
   console.log(`\n===== precss 性能基准（profile=${profileName} 份数=${N} 深度=${DEPTH} seed=${SEED} iterations=${ITERATIONS} warmup=${WARMUP}）=====`)
-  console.log(`${'格式'.padEnd(6)} ${'precss(ms)'.padStart(12)} ${'对比(ms)'.padStart(12)} ${'speedup'.padStart(10)} ${'正确性'.padStart(10)}`)
+  console.log(`${'格式'.padEnd(6)} ${'CLI(ms)'.padStart(12)} ${'库(ms)'.padStart(12)} ${'对比(ms)'.padStart(12)} ${'speedup'.padStart(10)} ${'正确性'.padStart(10)}`)
   console.log('------------------------------------------------------------------')
   for (const r of runs) {
-    const speed = r.speedup_x === null ? '-' : `${r.speedup_x}x`
-    console.log(`${r.syntax.padEnd(6)} ${pad(r.precss_native_cli.median_ms)} ${pad(r.baseline.stats.median_ms)} ${speed.padStart(10)} ${`${r.correctness.matched}/${r.correctness.total}`.padStart(10)}`)
+    const speed = r.library_speedup_x === null ? '-' : `${r.library_speedup_x}x`
+    console.log(`${r.syntax.padEnd(6)} ${pad(r.precss_native_cli.median_ms)} ${pad(r.precss_library.median_ms)} ${pad(r.baseline.stats.median_ms)} ${speed.padStart(10)} ${`${r.correctness.matched}/${r.correctness.total}`.padStart(10)}`)
   }
   console.log('------------------------------------------------------------------')
-  console.log('(speedup_x > 1 表示 precss 更快；只有 correctness.included=true 的结果才应作为性能结论)')
+  console.log('(library_speedup_x > 1 表示 precss 库编译阶段更快；CLI wall-clock 仍保存在 precss_native_cli；只有 correctness.included=true 的结果才应作为性能结论)')
 
   if (jsonPath) {
     const outputPath = jsonPath.startsWith('/') ? jsonPath : join(root, jsonPath)

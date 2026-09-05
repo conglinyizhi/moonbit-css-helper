@@ -55,15 +55,15 @@ jobs:
           }
           const rows = data.results.map((r) => {
             const ok = r.correctness.included ? '✅' : '❌'
-            return `| ${r.syntax.toUpperCase()} | ${r.precss_native_cli.median_ms} ms | ${r.baseline.stats.median_ms} ms | ${r.speedup_x ?? '-'}x | ${ok} ${r.correctness.matched}/${r.correctness.total} |`
+            return `| ${r.syntax.toUpperCase()} | ${r.precss_native_cli.median_ms} ms | ${r.precss_library.median_ms} ms | ${r.baseline.stats.median_ms} ms | ${r.library_speedup_x ?? '-'}x | ${ok} ${r.correctness.matched}/${r.correctness.total} |`
           })
           const summary = [
             '## precss 性能基准',
             '',
             `Profile：${data.profile}；数据集：${data.dataset.name}；${data.dataset.count} 份输入；总输入 ${data.dataset.actual_input_bytes.scss} bytes；深度 ${data.dataset.depth}；${data.dataset.iterations} 次采样`,
             '',
-            '| 格式 | precss native | 对比实现 | 加速比 | 正确性 |',
-            '|---|---:|---:|---:|---:|',
+            '| 格式 | precss CLI | precss 库 | 对比实现 | 库加速比 | 正确性 |',
+            '|---|---:|---:|---:|---:|---:|',
             ...rows,
             '',
             `提交：${data.commit}`,
@@ -73,8 +73,8 @@ jobs:
           node --input-type=module <<'EOF' >> "$GITHUB_STEP_SUMMARY"
           import { readFileSync } from 'node:fs'
           const data = JSON.parse(readFileSync('site/static/data/benchmark.json', 'utf8'))
-          const rows = data.results.map((r) => `| ${r.syntax.toUpperCase()} | ${r.precss_native_cli.median_ms} ms | ${r.baseline.stats.median_ms} ms | ${r.speedup_x ?? '-'}x | ${r.correctness.matched}/${r.correctness.total} |`)
-          process.stdout.write(['## precss 性能基准', '', `Profile：${data.profile}；数据集：${data.dataset.name}；${data.dataset.count} 份输入；总输入 ${data.dataset.actual_input_bytes.scss} bytes；深度 ${data.dataset.depth}；${data.dataset.iterations} 次采样`, '', '| 格式 | precss native | 对比实现 | 加速比 | 正确性 |', '|---|---:|---:|---:|---:|', ...rows, '', `提交：${data.commit}`].join('\\n'))
+          const rows = data.results.map((r) => `| ${r.syntax.toUpperCase()} | ${r.precss_native_cli.median_ms} ms | ${r.precss_library.median_ms} ms | ${r.baseline.stats.median_ms} ms | ${r.library_speedup_x ?? '-'}x | ${r.correctness.matched}/${r.correctness.total} |`)
+          process.stdout.write(['## precss 性能基准', '', `Profile：${data.profile}；数据集：${data.dataset.name}；${data.dataset.count} 份输入；总输入 ${data.dataset.actual_input_bytes.scss} bytes；深度 ${data.dataset.depth}；${data.dataset.iterations} 次采样`, '', '| 格式 | precss CLI | precss 库 | 对比实现 | 库加速比 | 正确性 |', '|---|---:|---:|---:|---:|---:|', ...rows, '', `提交：${data.commit}`].join('\\n'))
           EOF
 
       - name: 运行测试并生成 JSON

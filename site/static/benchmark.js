@@ -122,7 +122,7 @@ function render(data) {
   table.className = 'benchmark-table'
   const head = document.createElement('thead')
   const headRow = document.createElement('tr')
-  for (const label of ['格式', '源码 / 展开 CSS', 'precss native', '对比实现', '加速比', '正确性']) headRow.append(cell(label, 'benchmark-th'))
+  for (const label of ['格式', '源码 / 展开 CSS', 'precss CLI / 库', '对比实现', '库加速比', '正确性']) headRow.append(cell(label, 'benchmark-th'))
   head.append(headRow)
   table.append(head)
   const body = document.createElement('tbody')
@@ -133,9 +133,9 @@ function render(data) {
     const baselineStats = baseline.stats || {}
     tr.append(cell(row.syntax?.toUpperCase() || '-'))
     tr.append(cell(`${formatBytes(row.input_bytes)}\n${formatBytes(row.output_bytes)}`, 'benchmark-size'))
-    tr.append(cell(formatMs(row.precss_native_cli?.median_ms || 0)))
+    tr.append(cell(`${formatMs(row.precss_native_cli?.median_ms || 0)} / ${formatMs(row.precss_library?.median_ms || 0)}`))
     tr.append(cell(`${baseline.name || '-'} · ${formatMs(baselineStats.median_ms || 0)}`))
-    tr.append(cell(valid && row.speedup_x ? `${row.speedup_x}×` : '未计入', valid ? 'benchmark-speedup' : 'benchmark-invalid'))
+    tr.append(cell(valid && row.library_speedup_x ? `${row.library_speedup_x}×` : '未计入', valid ? 'benchmark-speedup' : 'benchmark-invalid'))
     tr.append(cell(`${row.correctness?.matched || 0}/${row.correctness?.total || 0}`, valid ? 'benchmark-valid' : 'benchmark-invalid'))
     body.append(tr)
   }
@@ -143,7 +143,7 @@ function render(data) {
   root.append(table)
   const sizeNote = document.createElement('p')
   sizeNote.className = 'benchmark-note'
-  sizeNote.append(text('「源码 / 展开 CSS」表示预处理器源码与生成 CSS 的规模差异，不是压缩比。输出为普通展开 CSS，未进行 minify；预处理器不保证生成 CSS 的字节数一定大于源码。'))
+  sizeNote.append(text('「源码 / 展开 CSS」表示预处理器源码与生成 CSS 的规模差异，不是压缩比。输出为普通展开 CSS，未进行 minify；预处理器不保证生成 CSS 的字节数一定大于源码。CLI / 库表示 CLI wall-clock / 进程内编译阶段耗时；库加速比只与对比实现的编译调用耗时比较。'))
   root.append(sizeNote)
   appendMemory(data)
   appendMeta(data)

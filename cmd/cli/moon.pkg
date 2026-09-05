@@ -3,6 +3,7 @@ import {
   "conglinyizhi/precss/backend/scss" @scss,
   "conglinyizhi/precss/backend/less" @less,
   "moonbitlang/core/env" @env,
+  "moonbitlang/core/bench" @bench,
   "moonbitlang/core/json" @json,
   "conglinyizhi/toml" @toml,
   "moonbitlang/async",

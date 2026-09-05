@@ -180,7 +180,7 @@ fn benchmark_page() -> @rabbita.Val[@html.Html] {
           el("section", "benchmark-card benchmark-method", [
             plain("h2", [txt("测试方法")]),
             plain("p", [txt("基准使用 manifest 描述的固定 profile，由同一棵确定性随机规则树生成 SCSS、缩进式 SASS 和 LESS 输入。每份输入先与对比实现进行归一化正确性校验，只有双方输出一致的数据才计入性能结果。")]),
-            plain("p", [txt("当前结果衡量批量吞吐量：precss 每次采样启动一个 native CLI，通过 NUL 分隔批量编译；Dart Sass 与 less.js 在同一 Node.js 进程内循环调用 API。页面同时展示精确 bytes、友好单位、UTC/本地时间和独立峰值 RSS。结果受输入、版本、硬件和系统负载影响，不代表所有项目中的固定加速比。")]),
+            plain("p", [txt("当前结果衡量批量吞吐量：precss CLI 每次采样启动一个 native CLI，通过 NUL 分隔批量编译；precss 库数据来自同一 native 进程内部的编译阶段计时；Dart Sass 与 less.js 在同一 Node.js 进程内循环调用 API。页面同时展示精确 bytes、友好单位、UTC/本地时间和独立峰值 RSS。结果受输入、版本、硬件和系统负载影响，不代表所有项目中的固定加速比。")]),
             el("p", "benchmark-warning", [txt("注意：Dart Sass 对比项是 sass npm 包的 JavaScript API，不是 Dart Sass 原生 CLI；SASS 入口当前先转换为 SCSS 再编译。")]),
           ]),
           el("section", "benchmark-card benchmark-reproduce", [
