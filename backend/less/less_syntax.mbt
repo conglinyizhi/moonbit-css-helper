@@ -249,8 +249,9 @@ fn LessParser::read_paren_list(self : LessParser) -> Array[String] {
       Some(")") => {
         self.pos += 1
         if depth == 0 {
-          if cur.to_string().trim().length() > 0 {
-            items.push(cur.to_string().trim().to_owned())
+          let item = cur.to_string().trim().to_owned()
+          if item.length() > 0 {
+            items.push(item)
           }
           break
         } else {

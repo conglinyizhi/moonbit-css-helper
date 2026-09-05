@@ -139,15 +139,15 @@ fn gen_block_decls(
   let out : Array[(String, String)] = []
   collect_decls(nodes, env, out)
   // 保留最后一次出现：从后往前收集，再逆序输出
-  let seen : Array[String] = []
+  let seen : Map[String, Bool] = Map([])
   let rev : Array[(String, String)] = []
   let mut k = out.length() - 1
   while k >= 0 {
     let (p, v) = out[k]
     let key = p + "\u0000" + v
-    if contains_key(seen, key) == false {
+    if seen.get(key) is None {
       rev.push((p, v))
-      seen.push(key)
+      seen[key] = true
     }
     k = k - 1
   }
@@ -173,15 +173,6 @@ fn collect_decls(nodes : Array[LessNode], env : Env, out : Array[(String, String
       _ => ()
     }
   }
-}
-
-fn contains_key(seen : Array[String], key : String) -> Bool {
-  for s in seen {
-    if s == key {
-      return true
-    }
-  }
-  false
 }
 
 ///| 当前块的子规则/at-rule（提升为独立规则）
