@@ -105,7 +105,7 @@ fn bind_params(m : Mixin, args : Array[String], env : Env) -> Unit {
   for pstr in m.params {
     if pstr.contains("...") {
       let v = pstr.replace(old="...", new="").trim().to_owned()
-      let rest = args[i:].to_array()
+      let rest = args[i:].to_owned()
       Env::set_var(env, v, [rest.join(", ")], false)
     } else if pstr.contains(":") {
       let colon = str_find_colon(pstr)
@@ -271,7 +271,7 @@ fn emit_atrule(
   env : Env,
   sb : StringBuilder,
 ) -> Unit {
-  let at_name = if name.starts_with("@") { name } else { "@" + name }
+  let at_name = if name.has_prefix("@") { name } else { "@" + name }
   sb.write_string("\{at_name} \{join_value(prelude, env)} {\n")
   with_scope(env, () => {
     gen(body, [], env, sb)
@@ -627,7 +627,7 @@ fn eval_truthy(cond : Array[String], env : Env) -> Bool {
 ///| 把字符串解析为整数（去掉单位）
 fn to_int(s : String) -> Int {
   let mut t = s.trim()
-  if t.ends_with("px") {
+  if t.has_suffix("px") {
     t = t[0:t.length() - 2].to_owned()
   }
   let mut result = 0
@@ -658,7 +658,7 @@ fn resolve(toks : Array[String], env : Env) -> String {
         Some(v) => parts.push(resolve(v, env))
         None => parts.push(t)
       }
-    } else if t.length() > 2 && t.starts_with("#{") && t.ends_with("}") {
+    } else if t.length() > 2 && t.has_prefix("#{") && t.has_suffix("}") {
       let inner = t[2:t.length() - 1].to_owned()
       if inner.length() > 0 && inner[0] == '$' {
         match Env::get_var(env, inner) {
@@ -704,7 +704,7 @@ fn is_func_call(parts : Array[String], i : Int) -> Bool {
 
 ///| 粗略判断 token 是否为函数名
 fn is_ident_ish(s : String) -> Bool {
-  s.length() > 0 && (s[0] >= 'A' && s[0] <= 'Z') || (s[0] >= 'a' && s[0] <= 'z') || s[0] == '$'
+  s.length() > 0 && ((s[0] >= 'A' && s[0] <= 'Z') || (s[0] >= 'a' && s[0] <= 'z') || s[0] == '$')
 }
 
 ///| 值 token 序列化：运算符及其相邻 token 紧密拼接

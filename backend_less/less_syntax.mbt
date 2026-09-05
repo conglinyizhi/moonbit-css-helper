@@ -24,13 +24,15 @@ pub(all) enum LessNode {
   Raw(String)
 } derive(Debug)
 
+pub extend LessNode with @debug.Debug::{to_repr}
+
 ///| LESS 解析入口：token 序列 → node 列表
 pub fn parse_less(toks : Array[String]) -> Array[LessNode] {
   let p = LessParser::new(toks)
   p.parse_block()
 }
 
-struct LessParser {
+priv struct LessParser {
   toks : Array[String]
   mut pos : Int
 }
@@ -195,10 +197,11 @@ fn LessParser::read_head(self : LessParser) -> Array[String] {
 
 ///| head 含 `:` 则拆成声明（prop: val），否则 Raw
 fn LessParser::make_decl_or_raw(self : LessParser, head : Array[String]) -> LessNode {
+  ignore(self)
   let colon = find_colon_in_tokens(head)
   if colon > 0 {
     let prop = head[0:colon].join(" ")
-    let val = head[colon + 1:].to_array()
+    let val = head[colon + 1:].to_owned()
     Decl(prop, val)
   } else {
     Raw(head.join(" "))
@@ -247,7 +250,7 @@ fn LessParser::read_paren_list(self : LessParser) -> Array[String] {
         self.pos += 1
         if depth == 0 {
           if cur.to_string().trim().length() > 0 {
-            items.push(cur.to_string().trim().to_string())
+            items.push(cur.to_string().trim().to_owned())
           }
           break
         } else {
@@ -263,7 +266,7 @@ fn LessParser::read_paren_list(self : LessParser) -> Array[String] {
       Some(",") | Some(";") => {
         self.pos += 1
         if depth == 0 {
-          items.push(cur.to_string().trim().to_string())
+          items.push(cur.to_string().trim().to_owned())
           cur = StringBuilder()
         } else {
           cur.write_string(",")
@@ -302,7 +305,7 @@ fn LessParser::consume(self : LessParser, tok : String) -> Unit {
 ///| 去掉 `@` 前缀
 fn strip_at(s : String) -> String {
   if s.length() > 0 && s[0] == '@' {
-    s[1:].to_string()
+    s[1:].to_owned()
   } else {
     s
   }
@@ -311,7 +314,7 @@ fn strip_at(s : String) -> String {
 ///| 去掉 `.` 前缀
 fn strip_dot(s : String) -> String {
   if s.length() > 0 && s[0] == '.' {
-    s[1:].to_string()
+    s[1:].to_owned()
   } else {
     s
   }
@@ -321,7 +324,7 @@ fn strip_dot(s : String) -> String {
 fn strip_quotes(s : String) -> String {
   let n = s.length()
   if n >= 2 && (s[0] == '"' || s[0] == '\'') && s[n - 1] == s[0] {
-    s[1:n - 1].to_string()
+    s[1:n - 1].to_owned()
   } else {
     s
   }

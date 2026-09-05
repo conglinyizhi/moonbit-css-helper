@@ -160,9 +160,7 @@ async fn run_format(args : Array[String]) -> Unit {
     let formatted : String = if kind == "sass" {
       @scss.format_scss(@scss.sass_to_scss(src))
     } else if kind == "less" {
-      let scss_src = try @less.less_to_scss(src) catch {
-        e => "/* less→scss 转换失败: \{repr(e)} */\n"
-      }
+      let scss_src = @less.less_to_scss(src)
       @scss.format_scss(scss_src)
     } else {
       @scss.format_scss(src)
@@ -238,16 +236,16 @@ async fn compile_flags(args : Array[String]) -> (Map[String, String], Bool) {
     i += 1
   }
   let vars : Map[String, String] = if vars_file.length() > 0 {
-    try read_vars(vars_file) catch { _ => Map::of([]) }
+    try read_vars(vars_file) catch { _ => Map([]) }
   } else {
-    Map::of([])
+    Map([])
   }
   (vars, minify)
 }
 
 ///| less 变量前缀（@name: value;）
 fn less_prefix(vars : Map[String, String]) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   vars.each(fn(k, v) {
     sb.write_string("@")
     sb.write_string(k)
@@ -261,7 +259,7 @@ fn less_prefix(vars : Map[String, String]) -> String {
 ///| 按扩展名读 json/toml 键值对为变量表（.toml 走 TOML，其余走 JSON）
 async fn read_vars(file : String) -> Map[String, String] {
   let content = try read_file_text(file) catch { _ => "" }
-  if file.ends_with(".toml") {
+  if file.has_suffix(".toml") {
     toml_to_vars(content)
   } else {
     json_to_vars(content)
@@ -275,17 +273,16 @@ async fn read_file_text(path : String) -> String {
 
 ///| json {"c":"10px"} → 变量表；只取 Object 顶层的字符串值
 fn json_to_vars(content : String) -> Map[String, String] {
-  let vars : Map[String, String] = Map::of([])
+  let vars : Map[String, String] = Map([])
   try {
     let j = @json.parse(content)
-    match j.as_object() {
-      Some(obj) => obj.each(fn(k, v) {
-        match v.as_string() {
-          Some(s) => vars[k] = s
-          None => ()
+    match j {
+      Json::Object(obj) => obj.each(fn(k, v) {
+        if v is Json::String(s) {
+          vars[k] = s
         }
       })
-      None => ()
+      _ => ()
     }
   } catch { _ => () }
   vars
@@ -293,7 +290,7 @@ fn json_to_vars(content : String) -> Map[String, String] {
 
 ///| toml 顶层 k = "v" 键值 → 变量表
 fn toml_to_vars(content : String) -> Map[String, String] {
-  let vars : Map[String, String] = Map::of([])
+  let vars : Map[String, String] = Map([])
   try {
     match @toml.parse(content) {
       @toml.TomlValue::TomlTable(map) => map.each(fn(k, v) {

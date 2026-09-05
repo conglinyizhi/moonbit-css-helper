@@ -114,7 +114,7 @@ fn site_header(back_label : String?, back_href : String?) -> @html.Html {
 }
 
 fn benchmark_page() -> @rabbita.Val[@html.Html] {
-  let (state, _emit) = @rabbita.create_pure_state((), update=fn(model, _msg) { model })
+  let (state, _emit) : (@rabbita.Val[Unit], @rabbita.Emit[Unit]) = @rabbita.create_pure_state((), update=(model, _msg) => model)
   state.view(_model => {
     @html.html([
       site_head("precss 性能比较", "../site.css?v=4"),
@@ -155,7 +155,7 @@ fn benchmark_page() -> @rabbita.Val[@html.Html] {
 }
 
 fn home_page() -> @rabbita.Val[@html.Html] {
-  let (state, _emit) = @rabbita.create_pure_state((), update=fn(model, _msg) { model })
+  let (state, _emit) : (@rabbita.Val[Unit], @rabbita.Emit[Unit]) = @rabbita.create_pure_state((), update=(model, _msg) => model)
   state.view(_model => {
     @html.html([
       plain("head", [

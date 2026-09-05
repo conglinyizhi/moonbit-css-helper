@@ -1,2 +1,5 @@
 // core 包：门面核心机制，不依赖任何具体后端引擎。
 // 基础类型（String / Array / Format 等）来自 prelude，无需额外 import。
+import {
+  "moonbitlang/core/debug",
+}

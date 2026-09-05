@@ -7,5 +7,4 @@ import {
 
 import {
   "conglinyizhi/precss/core",
-  "conglinyizhi/precss/backend_less",
 } for "test"

@@ -4,6 +4,8 @@
 ///   styles/tailwind.scss → 本库 compile_scss → out/tailwind.css（自研 tailwind-like）
 ///   styles/site.scss      → 本库 compile_scss → out/site.css    （深色 landing landing 样式）
 ///   rabbit 渲染 home_page → out/index.html（深色 + 黄标题 + 双栏实时编译）
+///
+#warnings("-alert_experimental")
 async fn main {
   // 1) 编译 tailwind.scss -> out/tailwind.css
   let tw_scss = try read_text("styles/tailwind.scss") catch { _ => "" }
@@ -74,6 +76,6 @@ fn dir_of(p : String) -> String {
   if i < 0 {
     "."
   } else {
-    p[0:i].to_string()
+    p[0:i].to_owned()
   }
 }

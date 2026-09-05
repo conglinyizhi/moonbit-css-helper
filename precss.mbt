@@ -72,7 +72,7 @@ fn compile_prefixed_vars(
   prefix~ : String,
   compile : (String) -> String raise @core.CompileError,
 ) -> String raise @core.CompileError {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   vars.each(fn(k, v) {
     sb.write_string(prefix)
     sb.write_string(k)
@@ -88,7 +88,7 @@ fn compile_prefixed_vars(
 /// 用于生成 `.min.css`。只做安全替换（空白/换行/符号前空格/注释），
 /// 不删可省略的末尾分号，也不做选择器合并等激进优化。
 pub fn minify_css(css : String) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   let n = css.length()
   let mut i = 0
   let mut need_space = false

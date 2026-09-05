@@ -1,3 +1,4 @@
 import {
   "conglinyizhi/precss/core",
+  "moonbitlang/core/debug",
 }

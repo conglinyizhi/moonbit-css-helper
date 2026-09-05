@@ -30,7 +30,11 @@ test "compile 自动识别格式" {
 
 test "compile many" {
   let read = fn(p : String) -> String raise @core.CompileError {
-    if p == "a" { "$c: red; .x { color: $c; }" } else { "" }
+    if p == "a" {
+      "$c: red; .x { color: $c; }"
+    } else {
+      raise @core.CompileError::EngineFailed(engine="test", message="missing: " + p)
+    }
   }
   inspect(@precss.compile_many(
     [@core.Input::Source("body { color: red; }"), @core.Input::File("a"), @core.Input::Source(".y { width: 1px; }")],
@@ -115,19 +119,19 @@ test "less mixin 默认值" {
 
 ///| 变量注入：未定义的 $c 通过 vars 预置为 red
 test "compile_scss_with_vars 注入预置变量" {
-  let css = try @precss.compile_scss_with_vars("body { color: $c; }", Map::of([("c", "red")])) catch { _ => "" }
+  let css = try @precss.compile_scss_with_vars("body { color: $c; }", Map([("c", "red")])) catch { _ => "" }
   inspect(css, content="body {\n  color: red;\n}\n")
 }
 
 ///| 注入多变量 + 单位
 test "compile_scss_with_vars 注入多变量" {
-  let css = try @precss.compile_scss_with_vars(".a { margin: $gap; color: $c; }", Map::of([("gap", "8px"), ("c", "blue")])) catch { _ => "" }
+  let css = try @precss.compile_scss_with_vars(".a { margin: $gap; color: $c; }", Map([("gap", "8px"), ("c", "blue")])) catch { _ => "" }
   inspect(css, content=".a {\n  margin: 8px;\n  color: blue;\n}\n")
 }
 
 ///| 对称的 LESS 变量注入入口
 test "compile_less_with_vars 注入变量" {
-  let css = try @precss.compile_less_with_vars(".a { color: @c; }", Map::of([("c", "red")])) catch { _ => "" }
+  let css = try @precss.compile_less_with_vars(".a { color: @c; }", Map([("c", "red")])) catch { _ => "" }
   inspect(css, content=".a {\n  color: red;\n}\n\n")
 }
 

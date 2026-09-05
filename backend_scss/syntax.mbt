@@ -31,6 +31,8 @@ pub(all) enum Node {
   Raw(String)
 } derive(Debug)
 
+pub extend Node with @debug.Debug::{to_repr}
+
 ///|
 
 ///| SCSS 词法：把源码切成 token 序列
@@ -494,7 +496,7 @@ fn parse_decl(head : Array[String]) -> Node? {
     return Some(Raw(head.join(" ")))
   }
   let name = head[0:colon].join("")
-  let value = head[colon + 1:].to_array()
+  let value = head[colon + 1:].to_owned()
   Some(Decl(name, value))
 }
 
@@ -599,5 +601,5 @@ fn is_joiner_char(u : UInt16) -> Bool {
 fn is_joiner(t : String) -> Bool {
   t == ":" || t == "." || t == "#" || t == "@" || t == "%" || t == "&" ||
     t == ">" || t == "+" || t == "~" || t == "-" || t == "[" || t == "]" ||
-    t.starts_with("#{")
+    t.has_prefix("#{")
 }

@@ -83,7 +83,11 @@ test "arith" {
 
 test "import" {
   let read = fn(path : String) -> String raise @core.CompileError {
-    if path == "a" { "$c: blue; .x { color: $c; }" } else { "" }
+    if path == "a" {
+      "$c: blue; .x { color: $c; }"
+    } else {
+      raise @core.CompileError::EngineFailed(engine="test", message="missing: " + path)
+    }
   }
   inspect(@backend_scss.compile_with_imports("@import \"a\"; body { color: red; }", read), content=(
     #|.x {

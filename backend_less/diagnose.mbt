@@ -27,7 +27,7 @@ fn scan_rule_less(body : Array[LessNode], pref : String, warns : Array[String]) 
   for node in body {
     match node {
       Decl(prop, val) => {
-        let v = val.join(" ").trim().to_string()
+        let v = val.join(" ").trim().to_owned()
         if has_seen(seen, prop, v) {
           warns.push("#\{pref}: duplicate property \"\{prop}: \{v}\"")
         } else {

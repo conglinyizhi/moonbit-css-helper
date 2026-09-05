@@ -4,7 +4,7 @@
 /// 类 mixin 混入、基础运算、@media、@import 内联。
 /// 不复用 SCSS 引擎——语义按 LESS 自带规则。
 
-struct Env {
+priv struct Env {
   vars : Array[(String, Array[String])]
   mixins : Array[(String, (Array[String], Array[LessNode]))]
   parent : Env?
@@ -153,7 +153,7 @@ fn gen_rule(
 fn gen_block_decls(
   nodes : Array[LessNode],
   env : Env,
-  read : ((String) -> String raise @core.CompileError)?,
+  _read : ((String) -> String raise @core.CompileError)?,
 ) -> String {
   let out : Array[(String, String)] = []
   collect_decls(nodes, env, out)
@@ -298,9 +298,9 @@ fn bind_params(env : Env, params : Array[String], args : Array[String]) -> Env {
 fn split_param(p : String) -> (String, String) {
   let idx = find_colon(p)
   if idx >= 0 {
-    (strip_at(p[0:idx].to_string()).trim().to_string(), p[idx + 1:].to_string().trim().to_string())
+    (strip_at(p[0:idx].to_owned()).trim().to_owned(), p[idx + 1:].to_owned().trim().to_owned())
   } else {
-    (strip_at(p).trim().to_string(), "")
+    (strip_at(p).trim().to_owned(), "")
   }
 }
 
@@ -318,7 +318,7 @@ fn find_colon(s : String) -> Int {
 
 ///| 把单个实参字符串切成值 token 序列
 fn split_args(s : String) -> Array[String] {
-  s.split(" ").filter(fn(x) { x.length() > 0 }).map(fn(x) { x.to_string() }).to_array()
+  s.split(" ").filter(fn(x) { x.length() > 0 }).map(fn(x) { x.to_owned() }).to_array()
 }
 
 ///| 求值一个值 token 序列：替换 @var + 合并数字运算
@@ -392,7 +392,7 @@ fn is_number(t : String) -> Bool {
 ///| 数值运算：解析（数字, 单位）后计算，单位取左操作数
 fn num_arith(a : String, op : String, b : String) -> String {
   let (anum, aunit) = parse_num(a)
-  let (bnum, bunit) = parse_num(b)
+  let (bnum, _) = parse_num(b)
   let res = match op {
     "+" => Some(anum + bnum)
     "-" => Some(anum - bnum)

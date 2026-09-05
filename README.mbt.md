@@ -75,7 +75,11 @@ test {
 ```mbt check
 test {
   let read = fn(p : String) -> String raise @core.CompileError {
-    if p == "a.scss" { "$c: blue; .x { color: $c; }" } else { "" }
+    if p == "a.scss" {
+      "$c: blue; .x { color: $c; }"
+    } else {
+      raise @core.CompileError::EngineFailed(engine="test", message="missing: " + p)
+    }
   }
   inspect(@precss.compile_many(
     [@core.Input::Source("body { color: red; }"),
@@ -178,7 +182,7 @@ node scripts/less_diff.mjs                       # less 自带 cases
 // 在 rabbit 项目（后端 cmd/server 或独立构建工具）里
 let read = fn(p : String) -> String raise @core.CompileError {
   // 从构建期 scss 源码 map 读，或从文件系统读（读文件用 @fs，见下方坑）
-  scss_sources.get(p) or ""
+  scss_sources.get(p) or raise @core.CompileError::EngineFailed(engine="reader", message="missing: " + p)
 }
 let css = @precss.compile_many(
   [@core.Input::File("app.scss"),

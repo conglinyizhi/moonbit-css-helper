@@ -59,6 +59,9 @@ pub(all) suberror CompileError {
   UnsupportedSyntax(String)
 } derive(Debug)
 
+pub extend CompileError with @debug.Debug::{to_repr}
+pub extend CompileError with Show::{to_string, output}
+
 ///|
 pub impl Show for CompileError with fn to_string(self) {
   match self {
@@ -78,6 +81,10 @@ pub(all) enum Format {
   Less
   Css
 } derive(Debug, Eq)
+
+pub extend Format with @debug.Debug::{to_repr}
+pub extend Format with Eq::{equal, not_equal}
+pub extend Format with Show::{to_string, output}
 
 ///| 启发式自动识别源码格式
 ///
@@ -189,3 +196,6 @@ pub(all) enum Input {
   /// 文件路径（用注入 reader 读取）
   File(String)
 } derive(Debug, Eq)
+
+pub extend Input with @debug.Debug::{to_repr}
+pub extend Input with Eq::{equal, not_equal}

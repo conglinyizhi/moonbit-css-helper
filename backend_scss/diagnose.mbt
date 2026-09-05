@@ -28,7 +28,7 @@ fn scan_rule_scss(body : Array[Node], pref : String, warns : Array[String]) -> U
   for node in body {
     match node {
       Decl(prop, val) => {
-        let v = val.join(" ").trim().to_string()
+        let v = val.join(" ").trim().to_owned()
         if has_seen(seen, prop, v) {
           warns.push("#\{pref}: duplicate property \"\{prop}: \{v}\"")
         } else {

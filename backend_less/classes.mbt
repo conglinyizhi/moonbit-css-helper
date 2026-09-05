@@ -13,7 +13,7 @@ fn collect_less(nodes : Array[LessNode], out : Array[String]) -> Unit {
       RuleSet(sel, body) => {
         for t in sel {
           if t.length() > 1 && t[0] == '.' {
-            out.push(t[1:].to_string())
+            out.push(t[1:].to_owned())
           }
         }
         collect_less(body, out)
