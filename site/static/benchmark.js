@@ -121,7 +121,7 @@ function render(data) {
   table.className = 'benchmark-table'
   const head = document.createElement('thead')
   const headRow = document.createElement('tr')
-  for (const label of ['格式', '输入 / 输出', 'precss native', '对比实现', '加速比', '正确性']) headRow.append(cell(label, 'benchmark-th'))
+  for (const label of ['格式', '源码 / 展开 CSS', 'precss native', '对比实现', '加速比', '正确性']) headRow.append(cell(label, 'benchmark-th'))
   head.append(headRow)
   table.append(head)
   const body = document.createElement('tbody')
@@ -140,6 +140,10 @@ function render(data) {
   }
   table.append(body)
   root.append(table)
+  const sizeNote = document.createElement('p')
+  sizeNote.className = 'benchmark-note'
+  sizeNote.append(text('「源码 / 展开 CSS」表示预处理器源码与生成 CSS 的规模差异，不是压缩比。输出为普通展开 CSS，未进行 minify；预处理器不保证生成 CSS 的字节数一定大于源码。'))
+  root.append(sizeNote)
   appendMemory(data)
   appendMeta(data)
 }
